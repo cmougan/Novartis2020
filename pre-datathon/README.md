@@ -17,5 +17,5 @@ Tambien os dejo resources que me parecen super interestantes de forecast:
 * [Video de una competicion kaggle](https://www.youtube.com/watch?v=s3YkZPNKLYg)
 * [Feature engineering de time series en python](https://maxhalford.github.io/blog/pandas-tricks/)
 * [Feature engineering de time series en R](https://davisvaughan.github.io/slider/)
-
+* Si teneis alguno que os parezca interesante, se pueden ir añadiendo aqui.
 
