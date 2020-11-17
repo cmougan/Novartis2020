@@ -6,7 +6,7 @@ Holas overfitters!
 
 Por si alguien quiere entrenarse antes de la hackathon he subido los datos de hace dos años, y unos scripts de exploracion en R que hice. Los datos estan en data/datathon.xlsx. Si es un pain leerlos los scripts de R hacen limpieza en las primeras lineas.
 
-Si no recuerdo mal, el objetivo era "completer al execel": predecir, para cada producto y en cada mes, las ventas en 2018.
+Si no recuerdo mal, el objetivo era "completer al execel": predecir, para cada producto y en cada mes de 2018, las ventas. Parece que las ventas aparecen en `Sales 1` y `Sales 2`. Yo he usado solo `Sales 2` para simplificar, pero supongo que en la competicion era distinto.
 
 
 Por lo que vi los años anteriores, el challenge suele ser de forecast y usan alguna metrica para que no solo tengas que predecir la media sino tambien la confianza que tienes en la prediccion, un poco como en [este kaggle](https://www.kaggle.com/c/m5-forecasting-uncertainty).
