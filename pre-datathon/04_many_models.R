@@ -64,7 +64,8 @@ for(month_predict in 12:1){
     add_rolling_stats(3 + month_predict, month_predict) %>% 
     add_rolling_stats(Inf, month_predict) %>% 
     add_rolling_stats_month(Inf, 1)
-  
+    # add_rolling_num_days_since(Inf, month_predict)
+
   sales_tbl_month <- sales_tbl_month %>% 
     group_by(Cluster, brand_group, Country) %>% 
     mutate(
@@ -133,7 +134,7 @@ target_tbl_xgb <- target_tbl
 save(target_tbl_xgb, file = 'data/target_tbl_xgb.RData')
 
 
-target_tbl$target_predict <- NA
+target_tbl$target_predict <- NA_real_
 for(month_predict in 1:12){
   
   preds_col <- paste0("preds_", month_predict)
