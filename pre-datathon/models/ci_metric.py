@@ -9,6 +9,16 @@ from sklearn.model_selection import train_test_split
 
 
 def interval_score_loss(lower, upper, real, alpha=0.25):
+    """
+    Taken from: https://stats.stackexchange.com/questions/194660/forecast-accuracy-metric-that-involves-prediction-intervals
+    Need to predict lower and upper bounds of interval, use target to assess error.
+
+    :param lower: Lower bound predictions
+    :param upper: Upper bound predictions
+    :param real: Target
+    :param alpha: Alpha in metric in
+    :return: Average of interval score loss
+    """
 
     real_lower = 2 * np.abs(real - lower) / alpha
     upper_real = 2 * np.abs(upper - real) / alpha

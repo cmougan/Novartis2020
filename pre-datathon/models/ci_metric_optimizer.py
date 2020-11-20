@@ -51,6 +51,14 @@ def duplicate_df(df, new_col="upper"):
 
 
 def interval_score_metric(y, preds):
+    """
+    Metric used in lightgbm
+    :param y: Duplicated target
+    :param preds: Predictions of upper and lower bounds:
+     First half of the predictions are for upper bounds.
+     Second half of the predictions are for lower bounds.
+    :return: Tuple to be consumed by lgbm
+    """
 
     len_y = round(len(y))
     real_len_ = round(len_y / 2)
@@ -70,11 +78,19 @@ def interval_score_metric(y, preds):
     acum[real_l_lower_cond] += (2 / alpha) * abs(preds_lower_ - y_real)[real_l_lower_cond]
     acum[upper_l_lower_cond] += penalization * abs(preds_upper_ - preds_lower_)[upper_l_lower_cond]
 
-    metric =  np.sum(acum) / real_len_
+    metric = np.sum(acum) / real_len_
     return 'ciloss', metric, False
 
 
 def interval_score_objective(y, preds):
+    """
+    Computes gradient and hessian for lgbm to consume this as an objective.
+    :param y:
+    :param preds:
+    :return: gradient, hessian tuple:
+        gradient is calculated properly
+        we sum 1 to hessian to have more stable optimization
+    """
 
     len_y = round(len(y))
     real_len_ = round(len_y / 2)
@@ -111,52 +127,53 @@ def interval_score_objective(y, preds):
     return grad, hess + 1
 
 
+if __name__ == "__main__":
 
-train_raw = pd.read_csv("data/feature_engineered/train_1.csv")
-# test_raw = pd.read_csv("data/feature_engineered/test_1.csv")
+    train_raw = pd.read_csv("data/feature_engineered/train_1.csv")
+    # test_raw = pd.read_csv("data/feature_engineered/test_1.csv")
 
 
-train, val = train_test_split(
-    train_raw,
-    random_state=42
-)
-
-train = duplicate_df(train)
-val = duplicate_df(val)
-
-to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
-
-train_x = train.drop(columns=to_drop)
-train_y = train.target
-
-test_x = val.drop(columns=to_drop)
-test_y = val.target
-
-# objective = partial(ciloss_objective, alpha=0.25, penalization=50)
-
-alpha = 0.25
-penalization = 100
-
-lgb = LGBMRegressor(objective=interval_score_objective, n_estimators=5000)
-
-lgb.fit(
-    train_x, train_y,
-    eval_metric=interval_score_metric,
-    eval_set=[(train_x, train_y), (test_x, test_y)],
-    verbose=100
-)
-
-preds = lgb.predict(test_x)
-
-len_real_val = int(len(test_y) / 2)
-
-print(
-    interval_score_loss(
-        preds[len_real_val:],
-        preds[:len_real_val],
-        test_y[len_real_val:],
-        alpha=0.25
+    train, val = train_test_split(
+        train_raw,
+        random_state=42
     )
-)
 
-# 550-ish
+    train = duplicate_df(train)
+    val = duplicate_df(val)
+
+    to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
+
+    train_x = train.drop(columns=to_drop)
+    train_y = train.target
+
+    test_x = val.drop(columns=to_drop)
+    test_y = val.target
+
+    # objective = partial(ciloss_objective, alpha=0.25, penalization=50)
+
+    alpha = 0.25
+    penalization = 100
+
+    lgb = LGBMRegressor(objective=interval_score_objective, n_estimators=5000)
+
+    lgb.fit(
+        train_x, train_y,
+        eval_metric=interval_score_metric,
+        eval_set=[(train_x, train_y), (test_x, test_y)],
+        verbose=100
+    )
+
+    preds = lgb.predict(test_x)
+
+    len_real_val = int(len(test_y) / 2)
+
+    print(
+        interval_score_loss(
+            preds[len_real_val:],
+            preds[:len_real_val],
+            test_y[len_real_val:],
+            alpha=0.25
+        )
+    )
+
+    # 550-ish
