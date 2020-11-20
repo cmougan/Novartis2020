@@ -15,49 +15,55 @@ from tools.simple_metrics import (
 
 if __name__ == "__main__":
 
+    # Load data and split
     train_raw = pd.read_csv("data/feature_engineered/train_1.csv")
     # test_raw = pd.read_csv("data/feature_engineered/test_1.csv")
-
 
     train, val = train_test_split(
         train_raw,
         random_state=42
     )
 
+    # Create duplicated datasets - we'll be able to predict upper and lower bound,
+    # one for each of the replications
     train = duplicate_df(train)
     val = duplicate_df(val)
 
+    # Clean data
     to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
-
     train_x = train.drop(columns=to_drop)
     train_y = train.target
 
-    test_x = val.drop(columns=to_drop)
-    test_y = val.target
+    val_x = val.drop(columns=to_drop)
+    val_y = val.target
 
-    # objective = partial(ciloss_objective, alpha=0.25, penalization=50)
-
-    alpha = 0.25
-    penalization = 100
-
-    lgb = LGBMRegressor(objective=interval_score_objective, n_estimators=5000)
+    # Create and fit lgbm - use interval_score_objective
+    lgb = LGBMRegressor(objective=interval_score_objective, n_estimators=6000)
 
     lgb.fit(
         train_x, train_y,
         eval_metric=interval_score_metric,
-        eval_set=[(train_x, train_y), (test_x, test_y)],
+        eval_set=[(train_x, train_y), (val_x, val_y)],
         verbose=100
     )
 
-    preds = lgb.predict(test_x)
+    # Predict duplicates
+    preds = lgb.predict(val_x)
 
-    len_real_val = int(len(test_y) / 2)
+    # Split lower and upper bounds
+    len_real_val = int(len(val_y) / 2)
+    lower_bound_preds = preds[len_real_val:]
+    upper_bound_preds = preds[:len_real_val]
 
+    # Get real target
+    y_real = val_y[len_real_val:]
+
+    # Compute loss
     print(
         interval_score_loss(
-            preds[len_real_val:],
-            preds[:len_real_val],
-            test_y[len_real_val:],
+            lower_bound_preds,
+            upper_bound_preds,
+            y_real,
             alpha=0.25
         )
     )
