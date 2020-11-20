@@ -32,34 +32,34 @@ def interval_score_loss(lower, upper, real, alpha=0.25):
     print(f"Length component {np.sum(upper_lower) / len(real):.3f}")
     return np.sum(real_lower + upper_real + upper_lower) / len(real)
 
+if __name__ == "__main__":
+
+    train = pd.read_csv("data/feature_engineered/train_1.csv")
+    # test = pd.read_csv("data/feature_engineered/test_1.csv")
+
+    train, val = train_test_split(
+        train,
+        random_state=42
+    )
 
 
-train = pd.read_csv("data/feature_engineered/train_1.csv")
-# test = pd.read_csv("data/feature_engineered/test_1.csv")
+    lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
 
-train, val = train_test_split(
-    train,
-    random_state=42
-)
+    to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
+    train_x = train.drop(columns=to_drop)
+    train_y = train.target
+    test_x = val.drop(columns=to_drop)
+    test_y = val.target
 
+    lgb.fit(train_x, train_y)
 
-lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
+    preds = lgb.predict(test_x)
 
-to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
-train_x = train.drop(columns=to_drop)
-train_y = train.target
-test_x = val.drop(columns=to_drop)
-test_y = val.target
+    bounds = [10, 20, 30, 50, 75]
 
-lgb.fit(train_x, train_y)
+    for bound in bounds:
 
-preds = lgb.predict(test_x)
-
-bounds = [10, 20, 30, 50, 75]
-
-for bound in bounds:
-
-    print(f"Bound in {bound}")
-    print(interval_score_loss(preds - bound, preds + bound, test_y))
-    # 670 - ish
+        print(f"Bound in {bound}")
+        print(interval_score_loss(preds - bound, preds + bound, test_y))
+        # 670 - ish
 
