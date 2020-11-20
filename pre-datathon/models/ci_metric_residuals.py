@@ -18,21 +18,27 @@ if __name__ == "__main__":
         random_state=42
     )
 
-    lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
-    lgb_residual = LGBMRegressor(objective='regression_l1', n_estimators=500)
-
     to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
     train_x = train.drop(columns=to_drop)
     train_y = train.target
     test_x = val.drop(columns=to_drop)
     test_y = val.target
 
+    # Create model objects
+    lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
+    lgb_residual = LGBMRegressor(objective='regression_l1', n_estimators=500)
+
+    # Obtain predictions of regular lgb using cross-validation
     predictions_cv = cross_val_predict(lgb, train_x, train_y)
+    # Compute absolute residuals -> | target - prediction |
     y_residual_train = np.abs(predictions_cv - train_y)
 
+    # Fit regular lgb to predict target
     lgb.fit(train_x, train_y)
+    # Fit residual lgb to predict absolute residuals
     lgb_residual.fit(train_x, y_residual_train)
 
+    # Predict everything on test
     preds = lgb.predict(test_x)
     preds_residual = lgb_residual.predict(test_x)
 
@@ -40,6 +46,8 @@ if __name__ == "__main__":
 
     for beta in betas:
 
+        # Compute interval score loss for several elongation of the residuals
+        # This is like calibrating the model
         print(f"Beta: {beta}")
         print(interval_score_loss(
             preds - beta * preds_residual,
