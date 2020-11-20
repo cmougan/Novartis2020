@@ -17,7 +17,6 @@ if __name__ == "__main__":
         random_state=42
     )
 
-
     lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
 
     to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
