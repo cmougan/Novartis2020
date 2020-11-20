@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 
 
-def ci_loss(lower, upper, real, alpha=0.25):
+def interval_score_loss(lower, upper, real, alpha=0.25):
 
     real_lower = 2 * np.abs(real - lower) / alpha
     upper_real = 2 * np.abs(upper - real) / alpha
@@ -50,6 +50,6 @@ bounds = [10, 20, 30, 50, 75]
 for bound in bounds:
 
     print(f"Bound in {bound}")
-    print(ci_loss(preds - bound, preds + bound, test_y))
+    print(interval_score_loss(preds - bound, preds + bound, test_y))
     # 670 - ish
 

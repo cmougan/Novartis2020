@@ -4,12 +4,21 @@ import numpy as np
 
 from lightgbm import LGBMRegressor
 from sklearn.model_selection import train_test_split
-import lightgbm
 
 
 
 
-def ci_loss(lower, upper, real, alpha=0.25):
+def interval_score_loss(lower, upper, real, alpha=0.25):
+    """
+    Taken from: https://stats.stackexchange.com/questions/194660/forecast-accuracy-metric-that-involves-prediction-intervals
+    Need to predict lower and upper bounds of interval, use target to assess error.
+
+    :param lower: Lower bound predictions
+    :param upper: Upper bound predictions
+    :param real: Target
+    :param alpha: Alpha in metric in
+    :return: Average of interval score loss
+    """
 
     real_lower = 2 * np.abs(real - lower) / alpha
     upper_real = 2 * np.abs(upper - real) / alpha
@@ -25,6 +34,12 @@ def ci_loss(lower, upper, real, alpha=0.25):
 
 
 def duplicate_df(df, new_col="upper"):
+    """
+    Duplicates a df to be able to create lower-upper structure
+    :param df: Dataframe to duplicate
+    :param new_col: Name of the new column that helps distinguishing
+    :return: Duplicated dataframe
+    """
 
     df_upper = df.copy()
     df_lower = df.copy()
@@ -35,7 +50,7 @@ def duplicate_df(df, new_col="upper"):
     return pd.concat([df_upper, df_lower], axis=0, ignore_index=True)
 
 
-def ciloss_metric_(y, preds):
+def interval_score_metric(y, preds):
 
     len_y = round(len(y))
     real_len_ = round(len_y / 2)
@@ -59,23 +74,7 @@ def ciloss_metric_(y, preds):
     return 'ciloss', metric, False
 
 
-def ciloss_init_score(y):
-    p = y.mean()
-    return p
-
-def ciloss_objective(preds, train_data):
-    y = train_data.get_label()
-    return ciloss_objective_(y, preds)
-
-# def ciloss_objective(preds, train_data):
-#     y = train_data.get_label()
-#     grad = np.sign(y - preds)
-#     hess = grad * 0
-#     return grad, hess
-
-
-
-def ciloss_objective_(y, preds):
+def interval_score_objective(y, preds):
 
     len_y = round(len(y))
     real_len_ = round(len_y / 2)
@@ -138,11 +137,11 @@ test_y = val.target
 alpha = 0.25
 penalization = 100
 
-lgb = LGBMRegressor(objective=ciloss_objective_, n_estimators=5000)
+lgb = LGBMRegressor(objective=interval_score_objective, n_estimators=5000)
 
 lgb.fit(
     train_x, train_y,
-    eval_metric=ciloss_metric_,
+    eval_metric=interval_score_metric,
     eval_set=[(train_x, train_y), (test_x, test_y)],
     verbose=100
 )
@@ -152,10 +151,12 @@ preds = lgb.predict(test_x)
 len_real_val = int(len(test_y) / 2)
 
 print(
-    ci_loss(
+    interval_score_loss(
         preds[len_real_val:],
         preds[:len_real_val],
         test_y[len_real_val:],
         alpha=0.25
     )
 )
+
+# 550-ish
