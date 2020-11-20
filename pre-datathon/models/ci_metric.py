@@ -33,7 +33,7 @@ train, val = train_test_split(
 )
 
 
-lgb = LGBMRegressor(objective='regression_l1')
+lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
 
 to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
 train_x = train.drop(columns=to_drop)
@@ -51,4 +51,5 @@ for bound in bounds:
 
     print(f"Bound in {bound}")
     print(ci_loss(preds - bound, preds + bound, test_y))
+    # 670 - ish
 

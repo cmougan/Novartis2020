@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 
 from lightgbm import LGBMRegressor
+from sklearn.model_selection import train_test_split
+import lightgbm
 
 
 
@@ -33,30 +35,65 @@ def duplicate_df(df, new_col="upper"):
     return pd.concat([df_upper, df_lower], axis=0, ignore_index=True)
 
 
-def ciloss_objective(y, preds):
+def ciloss_metric_(y, preds):
 
-    len_y = int(len(y))
-    real_len = int(len_y / 2)
+    len_y = round(len(y))
+    real_len_ = round(len_y / 2)
 
-    grad_upper = np.zeros(real_len)
-    grad_lower = np.zeros(real_len)
+    preds_upper_ = preds[:real_len_]
+    preds_lower_ = preds[real_len_:]
+    y_real = y[0:real_len_]
+    acum = np.zeros(real_len_)
+
+    upper_g_lower_cond = preds_upper_ >= preds_lower_
+    upper_l_real_cond = preds_upper_ < y_real
+    real_l_lower_cond = y_real < preds_lower_
+    upper_l_lower_cond = preds_upper_ < preds_lower_
+
+    acum[upper_g_lower_cond] += abs(preds_upper_ - preds_lower_)[upper_g_lower_cond]
+    acum[upper_l_real_cond] += (2 / alpha) * abs(preds_upper_ - y_real)[upper_l_real_cond]
+    acum[real_l_lower_cond] += (2 / alpha) * abs(preds_lower_ - y_real)[real_l_lower_cond]
+    acum[upper_l_lower_cond] += penalization * abs(preds_upper_ - preds_lower_)[upper_l_lower_cond]
+
+    metric =  np.sum(acum) / real_len_
+    return 'ciloss', metric, False
+
+
+def ciloss_init_score(y):
+    p = y.mean()
+    return p
+
+def ciloss_objective(preds, train_data):
+    y = train_data.get_label()
+    return ciloss_objective_(y, preds)
+
+# def ciloss_objective(preds, train_data):
+#     y = train_data.get_label()
+#     grad = np.sign(y - preds)
+#     hess = grad * 0
+#     return grad, hess
+
+
+
+def ciloss_objective_(y, preds):
+
+    len_y = round(len(y))
+    real_len_ = round(len_y / 2)
+
+    grad_upper = np.zeros(real_len_)
+    grad_lower = np.zeros(real_len_)
     grad = np.zeros(len_y)
     hess = np.zeros(len_y)
 
-    preds_upper = preds[0:real_len]
-    preds_lower = preds[real_len:len_y]
-    y_real = y[0:real_len]
+    preds_upper = preds[0:real_len_]
+    preds_lower = preds[real_len_:len_y]
+    y_real = y[0:real_len_]
 
     # Upper contribution
     upper_g_lower_cond = preds_upper >= preds_lower
-    upper_l_real_cond = preds_upper < y_real
-    real_l_lower_cond = y_real < preds_lower
+    upper_l_real_cond = preds_upper <= y_real
+    real_l_lower_cond = y_real <= preds_lower
     upper_l_lower_cond = preds_upper < preds_lower
-
-    print(upper_g_lower_cond)
-    print(upper_l_real_cond)
-    print(real_l_lower_cond)
-    print(upper_l_lower_cond)
 
     grad_upper[upper_g_lower_cond] += 1
     grad_upper[upper_l_real_cond] += - 2 / alpha
@@ -66,53 +103,59 @@ def ciloss_objective(y, preds):
     grad_lower[real_l_lower_cond] += 2 / alpha
     grad_lower[upper_l_lower_cond] += penalization
 
-    grad[0:real_len] = grad_upper
-    grad[real_len:len_y] = grad_lower
+    grad[0:real_len_] = grad_upper
+    grad[real_len_:len_y] = grad_lower
 
-    print(grad)
-    return grad, hess
+    # grad = grad / real_len_
+    grad = grad * 10
+
+    return grad, hess + 1
 
 
 
 train_raw = pd.read_csv("data/feature_engineered/train_1.csv")
-test_raw = pd.read_csv("data/feature_engineered/test_1.csv")
+# test_raw = pd.read_csv("data/feature_engineered/test_1.csv")
 
 
-train = duplicate_df(train_raw)
-test = duplicate_df(test_raw)
+train, val = train_test_split(
+    train_raw,
+    random_state=42
+)
+
+train = duplicate_df(train)
+val = duplicate_df(val)
 
 to_drop = ['target', 'Cluster', 'brand_group', 'cohort', 'Country']
 
 train_x = train.drop(columns=to_drop)
 train_y = train.target
 
-test_x = test.drop(columns=to_drop)
-test_y = test.target
+test_x = val.drop(columns=to_drop)
+test_y = val.target
 
 # objective = partial(ciloss_objective, alpha=0.25, penalization=50)
 
 alpha = 0.25
 penalization = 100
 
+lgb = LGBMRegressor(objective=ciloss_objective_, n_estimators=5000)
 
-print(ciloss_objective(np.array([0, 2, 0, 0, 2, 0]), np.array([1, 1, -1, -1, -1, 1])))
+lgb.fit(
+    train_x, train_y,
+    eval_metric=ciloss_metric_,
+    eval_set=[(train_x, train_y), (test_x, test_y)],
+    verbose=100
+)
 
-lgb = LGBMRegressor(objective=ciloss_objective, n_estimators=10)
+preds = lgb.predict(test_x)
 
-lgb.fit(train_x, train_y.values)
+len_real_val = int(len(test_y) / 2)
 
-preds = lgb.predict(train_x)
-
-bounds = [10, 20, 30, 50, 75]
-
-real_len = int(len(preds) / 2)
-print(preds[0:real_len])
-print(preds[real_len:len(preds)])
-
-print(ciloss_objective(train_y.values, preds))
-real_y = train_y[0:real_len]
-preds_upper = preds[0:real_len]
-preds_lower = preds[real_len:len(preds)]
-print(ci_loss(preds_lower, preds_upper, real_y))
-
-
+print(
+    ci_loss(
+        preds[len_real_val:],
+        preds[:len_real_val],
+        test_y[len_real_val:],
+        alpha=0.25
+    )
+)
