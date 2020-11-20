@@ -113,7 +113,7 @@ for(month_predict in 12:1){
   # 
   # train_y <- train_rec$target
   # 
-  # test_x <- test_rec %>% 
+  # test_x <- test_rec %>%
   #   select(year:month_cat_Sep, -month, -quarter) %>% 
   #   as.matrix()
   
