@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 
 from lightgbm import LGBMRegressor
-from functools import partial
 
 
 
@@ -34,7 +33,7 @@ def duplicate_df(df, new_col="upper"):
     return pd.concat([df_upper, df_lower], axis=0, ignore_index=True)
 
 
-def ciloss_objective(y, preds, alpha=0.25, penalization=50):
+def ciloss_objective(y, preds):
 
     len_y = int(len(y))
     real_len = int(len_y / 2)
@@ -54,6 +53,11 @@ def ciloss_objective(y, preds, alpha=0.25, penalization=50):
     real_l_lower_cond = y_real < preds_lower
     upper_l_lower_cond = preds_upper < preds_lower
 
+    print(upper_g_lower_cond)
+    print(upper_l_real_cond)
+    print(real_l_lower_cond)
+    print(upper_l_lower_cond)
+
     grad_upper[upper_g_lower_cond] += 1
     grad_upper[upper_l_real_cond] += - 2 / alpha
     grad_upper[upper_l_lower_cond] += - penalization
@@ -65,6 +69,7 @@ def ciloss_objective(y, preds, alpha=0.25, penalization=50):
     grad[0:real_len] = grad_upper
     grad[real_len:len_y] = grad_lower
 
+    print(grad)
     return grad, hess
 
 
@@ -84,18 +89,30 @@ train_y = train.target
 test_x = test.drop(columns=to_drop)
 test_y = test.target
 
-objective = partial(ciloss_objective, alpha=0.25, penalization=50)
+# objective = partial(ciloss_objective, alpha=0.25, penalization=50)
 
-lgb = LGBMRegressor(objective=ciloss_objective)
+alpha = 0.25
+penalization = 100
 
-lgb.fit(train_x, train_y)
+
+print(ciloss_objective(np.array([0, 2, 0, 0, 2, 0]), np.array([1, 1, -1, -1, -1, 1])))
+
+lgb = LGBMRegressor(objective=ciloss_objective, n_estimators=10)
+
+lgb.fit(train_x, train_y.values)
 
 preds = lgb.predict(train_x)
 
 bounds = [10, 20, 30, 50, 75]
 
-for bound in bounds:
+real_len = int(len(preds) / 2)
+print(preds[0:real_len])
+print(preds[real_len:len(preds)])
 
-    print(f"Bound in {bound}")
-    print(ci_loss(preds - bound, preds + bound, train_y))
-    print(objective(preds, train_y.values))
+print(ciloss_objective(train_y.values, preds))
+real_y = train_y[0:real_len]
+preds_upper = preds[0:real_len]
+preds_lower = preds[real_len:len(preds)]
+print(ci_loss(preds_lower, preds_upper, real_y))
+
+
