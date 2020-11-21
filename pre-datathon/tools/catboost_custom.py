@@ -51,13 +51,13 @@ class IntervalScoreObjective(object):
         # der1 is the first derivative of the loss function with respect
         # to the predicted value, and der2 is the second derivative.
 
-        assert len(approxes) == 1
-        assert len(targets[0]) == len(approxes[0])
+        assert len(targets) == len(approxes)
 
-        approx = approxes[0]
-        target = targets[0]
+        target_np = np.array([target for target in targets])
+        approx_np = np.array([approx for approx in approxes])
 
-        return interval_score_objective(target, approx)
+        return interval_score_objective(target_np, approx_np)
+
 
 class MaeObjective(object):
     def calc_ders_range(self, approxes, targets, weights):
@@ -87,5 +87,38 @@ class MaeObjective(object):
 
             result.append((der1, der2))
 
+        return result
+
+
+# This is actually slower!!!
+
+class MaeVectorObjective(object):
+    def calc_ders_range(self, approxes, targets, weights):
+        # approxes, targets, weights are indexed containers of floats
+        # (containers which have only __len__ and __getitem__ defined).
+        # weights parameter can be None.
+        #
+        # To understand what these parameters mean, assume that there is
+        # a subset of your dataset that is currently being processed.
+        # approxes contains current predictions for this subset,
+        # targets contains target values you provided with the dataset.
+        #
+        # This function should return a list of pairs (der1, der2), where
+        # der1 is the first derivative of the loss function with respect
+        # to the predicted value, and der2 is the second derivative.
+
+        assert len(targets) == len(approxes)
+
+        target_np = np.array([target for target in targets])
+        approx_np = np.array([approx for approx in approxes])
+
+        grad = np.sign(approx_np - target_np)
+        hess = np.zeros(len(target_np))
+
+        result = []
+        for index in range(len(targets)):
+            der1 = -grad[index]
+            der2 = hess[index]
+            result.append((der1, der2))
 
         return result

@@ -23,7 +23,6 @@ if __name__ == "__main__":
     cb.fit(
         X,
         y,
-
     )
 
     print(mean_absolute_error(cb.predict(X), y))
