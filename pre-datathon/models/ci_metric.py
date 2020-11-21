@@ -6,6 +6,7 @@ from lightgbm import LGBMRegressor
 from sklearn.model_selection import train_test_split
 
 from tools.simple_metrics import interval_score_loss
+from tools.error_metric import error_metric
 
 if __name__ == "__main__":
 
@@ -37,3 +38,9 @@ if __name__ == "__main__":
         print(interval_score_loss(preds - bound, preds + bound, test_y))
         # 670 - ish
 
+        print(error_metric(
+            test_y,
+            preds,
+            preds + bound,
+            preds - bound)
+        )

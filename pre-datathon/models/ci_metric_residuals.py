@@ -6,6 +6,7 @@ from lightgbm import LGBMRegressor
 from sklearn.model_selection import train_test_split, cross_val_predict
 
 from tools.simple_metrics import interval_score_loss
+from tools.error_metric import error_metric
 
 
 if __name__ == "__main__":
@@ -25,8 +26,12 @@ if __name__ == "__main__":
     test_y = val.target
 
     # Create model objects
-    lgb = LGBMRegressor(objective='regression_l1', n_estimators=500)
-    lgb_residual = LGBMRegressor(objective='regression_l1', n_estimators=500)
+    n_estimators = 20
+    # n_estimators = 500
+    # For novartis metric, low n_estimators is better
+    # For real metric, high n_estimators is better
+    lgb = LGBMRegressor(objective='regression_l1', n_estimators=n_estimators)
+    lgb_residual = LGBMRegressor(objective='regression_l1', n_estimators=n_estimators)
 
     # Obtain predictions of regular lgb using cross-validation
     predictions_cv = cross_val_predict(lgb, train_x, train_y)
@@ -55,4 +60,15 @@ if __name__ == "__main__":
             test_y)
         )
         # 440 - ish
+
+    bounds = [10, 20, 30, 50, 75, 100, 150, 200, 250, 300]
+
+    for bound in bounds:
+        print(f"Bound: {bound}")
+        print(error_metric(
+            test_y,
+            preds,
+            preds + bound * preds_residual,
+            preds - bound * preds_residual)
+        )
 
