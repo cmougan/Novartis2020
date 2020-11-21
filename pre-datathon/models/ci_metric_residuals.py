@@ -33,14 +33,14 @@ if __name__ == "__main__":
     lgb = LGBMRegressor(objective='regression_l1', n_estimators=n_estimators)
     lgb_residual = LGBMRegressor(objective='regression_l1', n_estimators=n_estimators)
 
-    # Obtain predictions of regular lgb using cross-validation
+    # Obtain predictions of regular cb using cross-validation
     predictions_cv = cross_val_predict(lgb, train_x, train_y)
     # Compute absolute residuals -> | target - prediction |
     y_residual_train = np.abs(predictions_cv - train_y)
 
-    # Fit regular lgb to predict target
+    # Fit regular cb to predict target
     lgb.fit(train_x, train_y)
-    # Fit residual lgb to predict absolute residuals
+    # Fit residual cb to predict absolute residuals
     lgb_residual.fit(train_x, y_residual_train)
 
     # Predict everything on test

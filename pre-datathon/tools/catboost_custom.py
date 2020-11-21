@@ -24,14 +24,12 @@ class IntervalScoreMetric(object):
         # weight parameter can be None.
         # Returns pair (error, weights sum)
 
-        assert len(approxes) == 1
-        assert len(target) == len(approxes[0])
-
-        approx = approxes[0]
-
         weight_sum = 1.0
 
-        error_sum = interval_score_metric(target, approx)[1]
+        target_np = np.array([target_ for target_ in target])
+        approx_np = np.array([approx for approx in approxes])
+
+        error_sum = interval_score_metric(target_np, approx_np)[1]
 
         return error_sum, weight_sum
 
@@ -56,7 +54,16 @@ class IntervalScoreObjective(object):
         target_np = np.array([target for target in targets])
         approx_np = np.array([approx for approx in approxes])
 
-        return interval_score_objective(target_np, approx_np)
+        grad, hess = interval_score_objective(target_np, approx_np)
+        hess = np.zeros(len(target_np))
+
+        result = []
+        for index in range(len(targets)):
+            der1 = -grad[index]
+            der2 = hess[index]
+            result.append((der1, der2))
+
+        return result
 
 
 class MaeObjective(object):

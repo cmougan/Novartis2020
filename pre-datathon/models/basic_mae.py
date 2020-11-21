@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     X, y = load_boston(return_X_y=True)
     # Using this, it learns
-    # lgb = LGBMRegressor(objective='regression_l1')
+    # cb = LGBMRegressor(objective='regression_l1')
     lgb = LGBMRegressor(objective=mae_objective, n_estimators=100)
 
     lgb.fit(
