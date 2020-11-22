@@ -26,8 +26,8 @@ if __name__ == "__main__":
     test_y = val.target
 
     # Create model objects
-    n_estimators = 20
-    # n_estimators = 500
+    # n_estimators = 20
+    n_estimators = 500
     # For novartis metric, low n_estimators is better
     # For real metric, high n_estimators is better
     lgb = LGBMRegressor(objective='regression_l1', n_estimators=n_estimators)
