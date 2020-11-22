@@ -49,11 +49,17 @@ if __name__ == "__main__":
 
     # Create and fit lgbm - use interval_score_objective
     cb = CatBoostRegressor(loss_function=IntervalScoreObjective(),
-                           eval_metric="MAE")
+                           eval_metric="MAE",
+                           n_estimators=1000)
 
-    print(train_x.shape)
+
+    len_real_train = int(len(train_y) / 2)
+    weights = np.ones(len(train_y))
+    weights[0:len_real_train] += .0001
+    weights[len_real_train:len(train_y)] -= .0001
+
     cb.fit(
-        train_x, train_y,
+        train_x, train_y, sample_weight=weights
     )
 
     # Predict duplicates

@@ -2,9 +2,9 @@
 import pandas as pd
 import numpy as np
 
+from tools.constants import ALPHA, PENALIZATION
 
-ALPHA = 0.25
-PENALIZATION = 100
+
 
 def interval_score_loss(lower, upper, real, alpha=0.25):
     """
@@ -108,11 +108,11 @@ def interval_score_objective(y, preds):
     real_l_lower_cond = y_real <= preds_lower
     upper_l_lower_cond = preds_upper < preds_lower
 
-    grad_upper[upper_g_lower_cond] += 1
+    grad_upper += 1
     grad_upper[upper_l_real_cond] += - 2 / ALPHA
     grad_upper[upper_l_lower_cond] += - PENALIZATION
 
-    grad_lower[upper_g_lower_cond] += -1
+    grad_lower += -1
     grad_lower[real_l_lower_cond] += 2 / ALPHA
     grad_lower[upper_l_lower_cond] += PENALIZATION
 

@@ -24,8 +24,8 @@ if __name__ == "__main__":
         random_state=42
     )
 
-    # Create duplicated datasets - we'll be able to predict upper and lower bound,
-    # one for each of the replications
+    # Create duplicated datasets - we'll be able to predict upper
+    # and lower bound, one for each of the replications
     train = duplicate_df(train)
     val = duplicate_df(val)
 
@@ -68,4 +68,4 @@ if __name__ == "__main__":
         )
     )
 
-    # 550-ish
+    # 500-ish (without penalization)

@@ -7,6 +7,8 @@ from tools.simple_metrics import (
 )
 
 
+from tools.constants import ALPHA, PENALIZATION
+
 class IntervalScoreMetric(object):
 
     def get_final_error(self, error, weight):
@@ -15,7 +17,7 @@ class IntervalScoreMetric(object):
     def is_max_optimal(self):
         return False
 
-    def evaluate(self, approxes, target, weight):
+    def evaluate(self, approxes, targets, weights):
         # approxes is list of indexed containers (containers with only __len__ and __getitem__ defined), one container
         # per approx dimension. Each container contains floats.
         # weight is one dimensional indexed container.
@@ -24,12 +26,16 @@ class IntervalScoreMetric(object):
         # weight parameter can be None.
         # Returns pair (error, weights sum)
 
-        weight_sum = 1.0
+        error_sum = 0
+        weight_sum = 0
 
-        target_np = np.array([target_ for target_ in target])
-        approx_np = np.array([approx for approx in approxes])
+        # This is hard to implement cause we need the upper and lower in the
+        # same batch
+        for index in range(len(targets)):
 
-        error_sum = interval_score_metric(target_np, approx_np)[1]
+            weight = weights[index]
+            approx = approxes[index]
+            target = targets[index]
 
         return error_sum, weight_sum
 
@@ -51,17 +57,27 @@ class IntervalScoreObjective(object):
 
         assert len(targets) == len(approxes)
 
-        target_np = np.array([target for target in targets])
-        approx_np = np.array([approx for approx in approxes])
-
-        grad, hess = interval_score_objective(target_np, approx_np)
-        hess = np.zeros(len(target_np))
-
         result = []
+
         for index in range(len(targets)):
-            der1 = -grad[index]
-            der2 = hess[index]
-            result.append((der1, der2))
+
+            weight = weights[index]
+            approx = approxes[index]
+            target = targets[index]
+
+            # Upper will have weights = 1.000001
+            if weight > 1:
+                deriv = 1
+                if approx < target:
+                    deriv += -2 / ALPHA
+            # Lower will have weights = 0.999999
+            else:
+                deriv = -1
+                if approx > target:
+                    deriv += 2 / ALPHA
+
+
+            result.append((-deriv, 0))
 
         return result
 
