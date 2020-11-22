@@ -1,5 +1,6 @@
 import torch
 
+
 def interval_score_loss(predictions, real, alpha=0.25):
     """
     Taken from: https://stats.stackexchange.com/questions/194660/forecast-accuracy-metric-that-involves-prediction-intervals
@@ -11,8 +12,8 @@ def interval_score_loss(predictions, real, alpha=0.25):
     :param alpha: Alpha in metric in
     :return: Average of interval score loss
     """
-    lower = predictions[:,0]
-    upper = predictions[:,1]
+    lower = predictions[:, 0]
+    upper = predictions[:, 1]
 
     real_lower = 2 * torch.abs(real - lower) / alpha
     upper_real = 2 * torch.abs(upper - real) / alpha
@@ -20,6 +21,5 @@ def interval_score_loss(predictions, real, alpha=0.25):
 
     real_lower[real > lower] = 0
     upper_real[real < upper] = 0
-
 
     return torch.sum(real_lower + upper_real + upper_lower) / len(real)

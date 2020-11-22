@@ -11,23 +11,26 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, random_split
+from sklearn.metrics import mean_squared_error
 
 from nnet import ReadDataset, Net
 import time
 from loss_functions import interval_score_loss
 
 
-
-
 tic = time.time()
 
 # Read data
-train_file = "data/NHANESI.csv"
-trainset = ReadDataset(train_file)
+train_file = "data/train_1.csv"
+trainset = ReadDataset(train_file, isTrain=True)
+testset = ReadDataset(train_file, isTrain=False)
 
 
 # Data loaders
 trainloader = DataLoader(trainset, batch_size=100, shuffle=True)
+# Test set
+X_test = torch.tensor(testset.X.values)
+y_test = torch.tensor(testset.y)
 
 
 # Use gpu if available
@@ -57,7 +60,7 @@ auc_train = []
 auc_test = []
 
 # hyperparameteres
-n_epochs = 10
+n_epochs = 20
 
 for epoch in range(n_epochs):
     print(epoch)
@@ -74,7 +77,6 @@ for epoch in range(n_epochs):
 
         # Compute diff
 
-
         loss = interval_score_loss(outputs, y.float())
 
         # Compute gradient
@@ -87,17 +89,23 @@ for epoch in range(n_epochs):
 
         losses.append(loss.item())
 
+
         if i % 50 == 0:
             auc_train.append(loss.detach().numpy())
-
+            pred = nnet(X_test.float())
+            auc_test.append(
+                interval_score_loss(pred, y_test.float())
+            )
 
             # Figure
             plt.figure()
             plt.plot(auc_train, label="train")
+            plt.plot(auc_test, label="test")
             plt.legend()
+            plt.ylim([0,3000])
             plt.savefig("output/auc_NN.png")
             plt.savefig("output/auc_NN.svg", format="svg")
             plt.close()
 
-print("Elapsed time: ", np.abs(tic-time.time()))
+print("Elapsed time: ", np.abs(tic - time.time()))
 print("done")
