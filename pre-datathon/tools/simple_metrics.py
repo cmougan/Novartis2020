@@ -123,3 +123,59 @@ def interval_score_objective(y, preds):
     grad = grad * 10
 
     return grad, hess + 1
+
+
+
+class OptimizeIntervalScore:
+    """
+    """
+    def __init__(
+            self,
+            alphas=(0.1, 0.5, 1, 1.5, 2, 2.5, 5, 10),
+            betas=(0.1, 0.5, 1, 1.5, 2, 2.5, 5, 10),
+            loss=interval_score_loss
+    ):
+        self.coef_ = {}
+        self.alphas = alphas
+        self.betas = betas
+        self.loss = loss
+        self.min_loss = 1e8
+
+    def get_params(self, deep):
+        return {}
+
+    def fit(self, X, y):
+        """
+
+        :param X: np.array, first column should be mean prediction and second should be stdev prediction
+        :param y: target
+        :return:
+        """
+
+        for alpha in self.alphas:
+            for beta in self.betas:
+
+                new_loss = self.loss(
+                    X[:, 0] - alpha * X[:, 1],
+                    X[:, 0] + beta * X[:, 1],
+                    y
+                )
+
+                if new_loss < self.min_loss:
+                    self.min_loss = new_loss
+                    self.coef_["alpha"] = alpha
+                    self.coef_["beta"] = beta
+
+        return self
+
+    def predict(self, X):
+        """
+
+        :param X: np.array, first column should be mean prediction and second should be stdev prediction.
+        :return: np.array with same shape as X. First column is lower bound and second column is upper bound.
+        """
+        preds = X.copy()
+        preds[:, 0] = X[:, 0] - self.coef_["alpha"] * X[:, 1]
+        preds[:, 1] = X[:, 0] + self.coef_["beta"] * X[:, 1]
+        return preds
+

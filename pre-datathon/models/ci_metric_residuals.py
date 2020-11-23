@@ -5,7 +5,7 @@ import numpy as np
 from lightgbm import LGBMRegressor
 from sklearn.model_selection import train_test_split, cross_val_predict
 
-from tools.simple_metrics import interval_score_loss
+from tools.simple_metrics import interval_score_loss, OptimizeIntervalScore
 from tools.error_metric import error_metric
 
 
@@ -47,19 +47,19 @@ if __name__ == "__main__":
     preds = lgb.predict(test_x)
     preds_residual = lgb_residual.predict(test_x)
 
-    betas = [0.1, 0.5, 1, 1.5, 2, 2.5]
+    # Optimize coeficients to minimize loss
+    X_ = np.array([preds, preds_residual]).T
+    predictions_cv_ul = cross_val_predict(OptimizeIntervalScore(), X_, test_y)
 
-    for beta in betas:
-
-        # Compute interval score loss for several elongation of the residuals
-        # This is like calibrating the model
-        print(f"Beta: {beta}")
-        print(interval_score_loss(
-            preds - beta * preds_residual,
-            preds + beta * preds_residual,
-            test_y)
+    print(
+        interval_score_loss(
+            lower=predictions_cv_ul[:, 0],
+            upper=predictions_cv_ul[:, 1],
+            real=test_y
         )
-        # 440 - ish
+    )
+    # 430 -> optimizer in cross-val
+
 
     bounds = [10, 20, 30, 50, 75, 100, 150, 200, 250, 300]
 
