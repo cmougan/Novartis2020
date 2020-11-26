@@ -17,6 +17,7 @@ from nnet import ReadDataset, Net
 import time
 from loss_functions import interval_score_loss
 
+from pytorch_tabnet.tab_model import TabNetClassifier
 
 tic = time.time()
 
@@ -29,10 +30,22 @@ testset = ReadDataset(train_file, isTrain=False)
 # Data loaders
 trainloader = DataLoader(trainset, batch_size=100, shuffle=True)
 # Test set
+
+X_train = torch.tensor(trainset.X.values)
+y_train = torch.tensor(trainset.y)
+
 X_test = torch.tensor(testset.X.values)
 y_test = torch.tensor(testset.y)
 
+clf = TabNetClassifier()  #TabNetRegressor()
+clf.fit(
+  X_train, y_train,
+  eval_set=[(X_test, y_test)]
+)
+preds = clf.predict(X_test)
 
+print(preds)
+kk
 # Use gpu if available
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
