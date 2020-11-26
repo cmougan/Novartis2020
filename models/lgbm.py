@@ -17,7 +17,7 @@ from tools.metrics import (
 )
 
 
-def compute_metrics(preds, upper, lower, y, X, avg_volumes):
+def compute_metrics(preds, lower, upper, y, X, avg_volumes):
 
     id_cols = ["country", "brand"]
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # print(f"MAE: {mean_absolute_percentage_error(val_y, np.zeros(len(val_y)))}")
     # print(f"MAE: {mean_absolute_percentage_error(val_y, pipe.predict(val_x))}")
     # print(f"MAE: {mean_absolute_percentage_error(val_y, train_y.median() + np.zeros(len(val_y)))}")
-    bounds = [0, 0.1, 1, 10, 50, 100,]
+    bounds = [0, 0.01, 0.1, 1, 10, 50, 100,]
     # bounds = [1]
 
     for bound in bounds:
