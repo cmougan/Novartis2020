@@ -115,3 +115,40 @@ def apply_metrics(x):
     )
 
     return pd.Series(d, index=["custom_metric", "uncertainty_metric"])
+
+
+def prep_data_for_metric(X, avg_12_volume):
+
+    id_cols = ["country", "brand"]
+    df_mock = X.copy()
+
+    # Let's get avg_12 months
+    df_mock = pd.merge(df_mock, avg_12_volume, on=id_cols, how="left")
+
+    # Using only the future months to make the forecast (mock example)
+    df_metric = df_mock[
+        (df_mock["month_num"] >= 0) & (df_mock["month_num"] < 24)
+        ]
+
+    return df_metric
+
+
+def get_avg_volumes():
+
+    df_mock = pd.read_csv("data/gx_volume.csv")
+
+    id_cols = ["country", "brand"]
+
+    avg_12_volume = df_mock[
+        (df_mock.month_num >= -12) & (df_mock.month_num < 0)
+        ].groupby(id_cols)["volume"].mean().reset_index()
+    avg_12_volume = avg_12_volume.rename(columns={"volume": "avg_vol"})
+
+    return  avg_12_volume
+
+def mean_absolute_percentage_error(y_true, y_pred):
+    ## Note: does not handle mix 1d representation
+    #if _is_1d(y_true):
+    #    y_true, y_pred = _check_1d_array(y_true, y_pred)
+
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
