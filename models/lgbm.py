@@ -37,7 +37,6 @@ if __name__ == "__main__":
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
 
-
     test_df = full_df[full_df.test == 1].copy().reset_index(drop=True)
 
     full_df = full_df[full_df.test == 0]
@@ -122,8 +121,8 @@ if __name__ == "__main__":
     submission_df["pred_95_high"] = preds_test + bound * preds_test_residual
     submission_df["prediction"] = np.maximum(preds_test, 0)
 
-    print(submission_df[submission_df.prediction < 0])
+    # print(submission_df[submission_df.prediction < 0])
 
-    # submission_df.to_csv("submissions/baseline.csv", index=False)
+    submission_df.to_csv("submissions/baseline.csv", index=False)
 
 
