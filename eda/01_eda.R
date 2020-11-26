@@ -15,9 +15,13 @@ submission <- read.csv("data/submission_template.csv") %>% as_tibble()
 max_months <- gx_volume %>% 
   group_by(country, brand) %>% 
   summarise(
-    max_month = max(month_num)
+    max_month = max(month_num),
+    min_month = min(month_num)
   ) %>% ungroup()
 
+
+max_months %>% count(max_month == 23, max_month == -1)
+max_months %>% count(min_month) %>% View
 max_months %>% count(max_month, sort = T)
 max_months %>% count(max_month <= -1)
 
