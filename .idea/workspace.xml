@@ -20,7 +20,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1f42c5be-976a-4aea-92d3-6c2bed2f35f4" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/data_splitter.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_splitter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_splitter.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/data_splitter.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,6 +47,11 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="TERMINAL_CUSTOM_COMMANDS_GOT_IT" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/tools" />
+    </key>
   </component>
   <component name="SvnConfiguration">
     <configuration />
