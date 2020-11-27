@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import ElasticNet
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from category_encoders import TargetEncoder
@@ -15,8 +15,6 @@ from sklearn.model_selection import (
 from models.lgbm import (compute_metrics, preprocess)
 
 from tools.metrics import (
-    apply_metrics,
-    prep_data_for_metric,
     get_avg_volumes,
 )
 
@@ -80,7 +78,7 @@ if __name__ == "__main__":
         ("te", te),
         ("imp", SimpleImputer(strategy="mean")),
         ("sc", StandardScaler()),
-        ("lgb", LinearRegression())
+        ("lgb", ElasticNet(alpha=.0005))
     ])
 
     pipe_residual = Pipeline([
@@ -94,6 +92,23 @@ if __name__ == "__main__":
 
     pipe_linear.fit(train_x, train_y)
     pipe_residual.fit(train_x, train_y_residual)
+
+    train_cols = (train_x.columns)
+    coefs = (pipe_linear[-1].coef_)
+
+    coefs_dict = (dict(zip(train_cols, coefs)))
+
+    coefs_dict_clean = {
+        key: value for key, value in coefs_dict.items() if value != 0
+    }
+
+    coefs_df = (pd.DataFrame
+                .from_dict(coefs_dict_clean, orient="index")
+                .reset_index()
+                .rename(columns={0: "a", "index": "b"})
+                )
+
+    print(coefs_df)
 
     preds = pipe_linear.predict(val_x)
     preds_residual = pipe_residual.predict(val_x)
