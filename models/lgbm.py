@@ -44,6 +44,9 @@ def preprocess(X):
         if re.match(r".*mean|median", col):
             X[col] = (X[col] - offset) / offset
 
+    X["n_channels"] = (X["A"] > 10).astype(int) + \
+                      (X["B"] > 10).astype(int) + \
+                      (X["C"] > 10).astype(int)
     return X
 
 if __name__ == "__main__":
