@@ -32,9 +32,12 @@ def compute_metrics(preds, lower, upper, y, X, avg_volumes):
 
 if __name__ == "__main__":
 
-    full_df = pd.read_csv("data/gx_merged_lags.csv")
+    full_df = pd.read_csv("data/gx_merged_lags_months.csv").drop(columns=["Unnamed: 0"])
+    submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
+
+    test_df = full_df[full_df.test == 1].copy().reset_index(drop=True)
 
     full_df = full_df[full_df.test == 0]
 
@@ -44,7 +47,8 @@ if __name__ == "__main__":
     # TODO: no need for calculation every time
     avg_volumes = get_avg_volumes()
 
-    to_drop = ["month_name", "volume"]
+    to_drop = ["volume", "month_name"]
+    categorical_cols = ["country", "brand", "therapeutic_area", "presentation"]
 
     train_x = train_df.drop(columns=to_drop)
     train_y = train_df.volume
@@ -52,15 +56,16 @@ if __name__ == "__main__":
     val_x = val_df.drop(columns=to_drop)
     val_y = val_df.volume
 
-    categorical_cols = ["country", "brand", "therapeutic_area", "presentation"]
+    test_x = test_df.drop(columns=to_drop)
+
     te = TargetEncoder(cols=categorical_cols)
     te_residual = TargetEncoder(cols=categorical_cols)
     # imputer = SimpleImputer(strategy="mean")
     lgb = LGBMRegressor(
-        n_jobs=-1, n_estimators=100, objective="regression_l1"
+        n_jobs=-1, n_estimators=50, objective="regression_l1"
     )
     lgb_residual = LGBMRegressor(
-        n_jobs=-1, n_estimators=100, objective="regression_l1"
+        n_jobs=-1, n_estimators=50, objective="regression_l1"
     )
 
     pipe = Pipeline([
@@ -83,27 +88,41 @@ if __name__ == "__main__":
     preds = pipe.predict(val_x)
     preds_residual = pipe_residual.predict(val_x)
 
-    train_preds = pipe.predict(train_x)
+    preds_test = pipe.predict(test_x)
+    preds_test_residual = pipe_residual.predict(test_x)
 
-    # print(np.abs(pipe.predict(train_x))
-    # print(f"MAE: {mean_absolute_percentage_error(train_y, pipe.predict(train_x))}")
-    # print(f"MAE: {mean_absolute_percentage_error(train_y, train_y.median() + np.zeros(len(train_y)))}")
-    # print(f"MAE: {mean_absolute_percentage_error(val_y, np.zeros(len(val_y)))}")
-    # print(f"MAE: {mean_absolute_percentage_error(val_y, pipe.predict(val_x))}")
-    # print(f"MAE: {mean_absolute_percentage_error(val_y, train_y.median() + np.zeros(len(val_y)))}")
-    bounds = [0, 0.01, 0.1, 1, 10, 50, 100,]
-    # bounds = [1]
+    # bounds = [0, 0.01, 0.1, 0.5, 1, 1.5]
+    bounds = [10]
 
+    min_unc = 1e8
+    best_bound = 0
     for bound in bounds:
         print(f"Bound: {bound}")
-        print(
-            compute_metrics(
+        metric_pair = compute_metrics(
                 preds,
-                preds - bound * preds_residual,
+                np.maximum(preds - bound * preds_residual, 0),
                 preds + bound * preds_residual,
                 val_y,
                 val_x,
                 avg_volumes
             )
-        )
+        print(metric_pair)
+
+        unc_metric = metric_pair.values[1]
+
+        if unc_metric < min_unc:
+            min_unc = unc_metric
+            best_bound = bound
+
+    print(min_unc)
+    print(best_bound)
+
+    submission_df["pred_95_low"] = np.maximum(preds_test - bound * preds_test_residual, 0)
+    submission_df["pred_95_high"] = preds_test + bound * preds_test_residual
+    submission_df["prediction"] = np.maximum(preds_test, 0)
+
+    # print(submission_df[submission_df.prediction < 0])
+
+    submission_df.to_csv("submissions/baseline.csv", index=False)
+
 
