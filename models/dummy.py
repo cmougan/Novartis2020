@@ -17,6 +17,8 @@ from tools.metrics import (
     mean_absolute_percentage_error
 )
 
+from tools.postprocessing import postprocess_submission
+
 
 def compute_metrics(preds, lower, upper, y, X, avg_volumes):
 
@@ -34,7 +36,7 @@ def compute_metrics(preds, lower, upper, y, X, avg_volumes):
 
 if __name__ == "__main__":
 
-    full_df = pd.read_csv("data/gx_merged_lags_months.csv").drop(columns=["Unnamed: 0"])
+    full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
@@ -74,10 +76,12 @@ if __name__ == "__main__":
     # mean_pred = 1e6
     # upper_pred = 2e6
     # lower_pred = 0
+    val_x["median_volume"] = 1
+    test_x["median_volume"] = 1
     metric_pair = compute_metrics(
             val_x["median_volume"],
-            val_x["median_volume"] - 100,
-            val_x["median_volume"] + 100,
+            val_x["median_volume"] - 1,
+            val_x["median_volume"] + 1,
             val_y,
             val_x,
             avg_volumes
@@ -85,12 +89,12 @@ if __name__ == "__main__":
     print(metric_pair)
 
     submission_df["prediction"] = test_x["median_volume"]
-    submission_df["pred_95_low"] = test_x["median_volume"] - 100
-    submission_df["pred_95_high"] = test_x["median_volume"] + 100
+    submission_df["pred_95_low"] = test_x["median_volume"] - 1
+    submission_df["pred_95_high"] = test_x["median_volume"] + 1
+
+    submission_df = postprocess_submission(submission_df)
 
 
-    # print(submission_df[submission_df.prediction < 0])
-
-    submission_df.to_csv("submissions/baseline_time.csv", index=False)
+    submission_df.to_csv("submissions/dummy_w_postprocess.csv", index=False)
 
 
