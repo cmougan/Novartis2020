@@ -40,6 +40,17 @@ def preprocess(X):
 
     offset = X[offset_name]
 
+    # More data for target encoding
+    X["month_country"] = X["month_name"] + "_" + X["country"]
+    X["month_presentation"] = X["month_name"] + "_" + X["presentation"]
+    X["month_area"] = X["month_name"] + "_" + X["therapeutic_area"]
+
+    # Month-num
+    X["month_country_num"] = X["month_num"].map(str) + "_" + X["country"]
+    X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
+    X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
+    X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
+
     for col in X.columns:
         if re.match(r".*mean|median", col):
             X[col] = (X[col] - offset) / offset
@@ -50,6 +61,8 @@ def preprocess(X):
     return X
 
 if __name__ == "__main__":
+
+    file_name = "target_encoders"
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     # volume_features = pd.read_csv("data/volume_features.csv")
@@ -73,7 +86,12 @@ if __name__ == "__main__":
     avg_volumes = get_avg_volumes()
 
     to_drop = ["volume", "volume_offset"]
-    categorical_cols = ["country", "brand", "therapeutic_area", "presentation", "month_name"]
+    categorical_cols = [
+        "country", "brand", "therapeutic_area", "presentation", "month_name",
+        "month_country", "month_presentation", "month_area",
+        "month_country_num", "month_presentation_num", "month_area_num",
+        "month_month_num"
+    ]
 
     # Prep data
     train_x = train_df.drop(columns=to_drop)
@@ -126,7 +144,7 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    bounds = [10]
+    bounds = [1]
 
     min_unc = 1e8
     best_upper_bound = 0
@@ -158,6 +176,17 @@ if __name__ == "__main__":
     print(best_upper_bound)
     print(best_lower_bound)
 
+    save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
+    save_val["y"] = val_y_raw
+    save_val["lower"] = preds - best_lower_bound * preds_residual
+    save_val["upper"] = preds - best_upper_bound * preds_residual
+    save_val["preds"] = preds
+    save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
+    save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
+    save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
+    save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
+
+
     # Retrain with full data -> In case of need
 
     retrain_full_data = False
@@ -185,5 +214,5 @@ if __name__ == "__main__":
     submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
     submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
 
-    submission_df.to_csv("submissions/baseline_lgbm_offset.csv", index=False)
+    submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
 
