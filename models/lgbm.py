@@ -93,9 +93,9 @@ if __name__ == "__main__":
 
     # bounds = [0, 0.01, 0.1, 0.5, 1, 1.5]
     bounds = [10]
-
     min_unc = 1e8
     best_bound = 0
+
     for bound in bounds:
         print(f"Bound: {bound}")
         metric_pair = compute_metrics(
