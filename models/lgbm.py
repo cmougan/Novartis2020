@@ -49,9 +49,12 @@ def preprocess(X):
 if __name__ == "__main__":
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
+    volume_features = pd.read_csv("data/volume_features.csv")
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
+
+    full_df = full_df.merge(volume_features, on=["country", "brand"])
 
     full_df["volume_offset"] = (full_df["volume"] - full_df[offset_name]) / full_df[offset_name]
     full_df = preprocess(full_df)
@@ -114,7 +117,7 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    bounds = [1]
+    bounds = [1, 2]
 
     min_unc = 1e8
     best_upper_bound = 0
@@ -149,7 +152,7 @@ if __name__ == "__main__":
     # submission_df["pred_95_low"] = np.maximum(preds_test - upper_bound * preds_test_residual, 0)
     submission_df["pred_95_low"] = (preds_test - best_lower_bound * preds_test_residual + 1) * test_offset
     submission_df["pred_95_high"] = (preds_test + best_upper_bound * preds_test_residual + 1) * test_offset
-    submission_df["prediction"] = (preds_test + 1) * (test_offset)
+    submission_df["prediction"] = (preds_test + 1) * test_offset
 
     # print(submission_df[submission_df.prediction < 0])
     submission_df = postprocess_submission(submission_df)
