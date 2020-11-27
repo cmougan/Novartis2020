@@ -7,41 +7,16 @@ from category_encoders import TargetEncoder
 
 from sklearn.pipeline import Pipeline
 from tools.metrics import (
-    apply_metrics,
-    prep_data_for_metric,
     get_avg_volumes,
 )
 
 from tools.postprocessing import postprocess_submission
+from models.lgbm import (compute_metrics, preprocess)
 
 offset_name = "last_before_3_after_0"
 
 
-def compute_metrics(preds, lower, upper, y, offset, X, avg_volumes):
 
-    id_cols = ["country", "brand"]
-
-    prepped_X = prep_data_for_metric(X, avg_volumes)
-
-    prepped_X["actuals"] = y
-    prepped_X["forecast"] = (preds + 1) * offset
-    prepped_X["lower_bound"] = (lower + 1) * offset
-    prepped_X["upper_bound"] = (upper + 1) * offset
-
-
-    return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
-
-def preprocess(X):
-
-    X = X.copy()
-
-    offset = X[offset_name]
-
-    for col in X.columns:
-        if re.match(r".*mean|median", col):
-            X[col] = (X[col] - offset) / offset
-
-    return X
 
 if __name__ == "__main__":
 
