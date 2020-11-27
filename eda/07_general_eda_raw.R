@@ -218,7 +218,7 @@ gx_full %>%
   geom_line() 
 
 
-gx_full %>% 
+gx_full %>%
   group_by(country, month_num) %>% 
   summarise(
     target_50 = median(target),
@@ -264,6 +264,7 @@ p <- gx_full %>%
   ggplot(aes(x = month_num, y = target_50, color = therapeutic_area)) + 
   geom_line()
 
+p
 ggplotly(p)
 
 gx_full %>% 
@@ -314,7 +315,7 @@ gx_full %>%
 gx_full %>% 
   filter(month_num >= 0) %>% 
   mutate(
-    n_channels = as.factor(pmin((A > 0) + (B > 0) + (C > 0) + (D > 0), 2))
+    n_channels = as.factor(pmin((A > 10) + (B > 10) + (C > 10) + (D > 10), 4))
   ) %>% 
   group_by(n_channels, month_num) %>% 
   summarise(
