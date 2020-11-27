@@ -5,6 +5,7 @@ import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.linear_model import LinearRegression
 from category_encoders import TargetEncoder
+from sktools.encoders import QuantileEncoder
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
@@ -72,9 +73,14 @@ if __name__ == "__main__":
     to_drop = ["volume", "volume_offset"]
     categorical_cols = ["country", "brand", "therapeutic_area", "presentation", "month_name"]
 
+    # Prep data
     train_x = train_df.drop(columns=to_drop)
     train_y = train_df.volume_offset
     train_offset = train_df[offset_name]
+
+    full_x = full_df.drop(columns=to_drop)
+    full_y = full_df.volume_offset
+    full_offset = full_df[offset_name]
 
     val_x = val_df.drop(columns=to_drop)
     val_y = val_df.volume_offset
@@ -84,6 +90,7 @@ if __name__ == "__main__":
     test_x = test_df.drop(columns=to_drop)
     test_offset = test_df[offset_name]
 
+    # Prep pipeline
     te = TargetEncoder(cols=categorical_cols)
     te_residual = TargetEncoder(cols=categorical_cols)
     lgb = LGBMRegressor(
@@ -103,7 +110,7 @@ if __name__ == "__main__":
         ("lgb", lgb_residual)
     ])
 
-    # TODO: do with group-k-fold
+    # Fit cv model
     cv_preds = cross_val_predict(pipe, train_x, train_y)
     train_y_residual = np.abs(cv_preds - train_y)
 
@@ -117,7 +124,7 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    bounds = [1, 2]
+    bounds = [1]
 
     min_unc = 1e8
     best_upper_bound = 0
@@ -148,6 +155,21 @@ if __name__ == "__main__":
     print(min_unc)
     print(best_upper_bound)
     print(best_lower_bound)
+
+    # Retrain with full data -> In case of need
+
+    retrain_full_data = False
+
+    if retrain_full_data:
+
+        cv_preds_full = cross_val_predict(pipe, full_x, full_y)
+        full_y_residual = np.abs(cv_preds_full - full_y)
+
+        pipe.fit(full_x, full_y)
+        pipe_residual.fit(full_x, full_y_residual)
+
+        preds_test = pipe.predict(test_x)
+        preds_test_residual = pipe_residual.predict(test_x)
 
     # submission_df["pred_95_low"] = np.maximum(preds_test - upper_bound * preds_test_residual, 0)
     submission_df["pred_95_low"] = (preds_test - best_lower_bound * preds_test_residual + 1) * test_offset

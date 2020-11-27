@@ -17,6 +17,14 @@ volume_summaries <- gx_volume %>%
     min_vol = min(volume[month_num < 0]),
     min_month = min(month_num),
     last_vol = last(volume[month_num < 0]),
+    last_vol_6 = last(volume[month_num <= -6]),
+    last_vol_12 = last(volume[month_num <= -12]),
+    # vol_12th = nth(volume, 12),
+    # vol_6th = nth(volume, 12),
+    ratios_vol_12 = last_vol_12 / last_vol,
+    ratios_vol_6 = last_vol_6 / last_vol,
+    # ratios_vol_12_ini = vol_12th / last_vol,
+    # ratios_vol_6_ini = vol_6th / last_vol,
     max_last_diff = (max_vol - last_vol) / max_vol,
     min_last_diff = (min_vol - last_vol) / min_vol,
   ) %>% 
@@ -24,5 +32,7 @@ volume_summaries <- gx_volume %>%
 
 summary(volume_summaries)
 
+
 write.csv(volume_summaries, file = "data/volume_features.csv", row.names = FALSE)
+
 
