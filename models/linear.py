@@ -105,7 +105,7 @@ if __name__ == "__main__":
     coefs_df = (pd.DataFrame
                 .from_dict(coefs_dict_clean, orient="index")
                 .reset_index()
-                .rename(columns={0: "a", "index": "b"})
+                .rename(columns={0: "coef", "index": "feature"})
                 )
 
     print(coefs_df)
@@ -172,5 +172,9 @@ if __name__ == "__main__":
     # print(submission_df[submission_df.prediction < 0])
     submission_df = postprocess_submission(submission_df)
 
-    # submission_df.to_csv("submissions/baseline_relative_postprocess.csv", index=False)
+    submission_df["pred_95_low"] = np.maximum(submission_df["pred_95_low"].round(0), 1 - 0.01)
+    submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"].round(0), 1 + 0.01)
+    submission_df["prediction"] = np.maximum(submission_df["prediction"].round(0), 1)
+
+    submission_df.to_csv("submissions/baseline_linear_10.csv", index=False)
 
