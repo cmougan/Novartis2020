@@ -66,8 +66,8 @@ if __name__ == "__main__":
     # TODO: no need for calculation every time
     avg_volumes = get_avg_volumes()
 
-    to_drop = ["volume", "volume_offset", "month_name"]
-    categorical_cols = ["country", "brand", "therapeutic_area", "presentation"]
+    to_drop = ["volume", "volume_offset"]
+    categorical_cols = ["country", "brand", "therapeutic_area", "presentation", "month_name"]
 
     train_x = train_df.drop(columns=to_drop)
     train_y = train_df.volume_offset
@@ -113,36 +113,42 @@ if __name__ == "__main__":
     preds_test = pipe.predict(test_x)
     preds_test_residual = pipe_residual.predict(test_x)
 
-    bounds = [0, 0.01, 0.1, 0.5, 1, 1.5, 2]
-    # bounds = [10]
+    # bounds = [0, ,0.5, 1, 1.5, 2]
+    bounds = [1]
 
     min_unc = 1e8
-    best_bound = 0
-    for bound in bounds:
-        print(f"Bound: {bound}")
-        metric_pair = compute_metrics(
-                preds=preds,
-                lower=preds - bound * preds_residual,
-                upper=preds + bound * preds_residual,
-                y=val_y_raw,
-                offset=val_offset,
-                X=val_x,
-                avg_volumes=avg_volumes
-            )
-        print(metric_pair)
+    best_upper_bound = 0
+    best_lower_bound = 0
+    for upper_bound in bounds:
+        for lower_bound in list(bounds):
 
-        unc_metric = metric_pair.values[1]
+            print(f"Upper bound: {upper_bound}")
+            print(f"Lower bound: {lower_bound}")
+            metric_pair = compute_metrics(
+                    preds=preds,
+                    lower=preds - lower_bound * preds_residual,
+                    upper=preds + upper_bound * preds_residual,
+                    y=val_y_raw,
+                    offset=val_offset,
+                    X=val_x,
+                    avg_volumes=avg_volumes
+                )
+            print(metric_pair)
 
-        if unc_metric < min_unc:
-            min_unc = unc_metric
-            best_bound = bound
+            unc_metric = metric_pair.values[1]
+
+            if unc_metric < min_unc:
+                min_unc = unc_metric
+                best_upper_bound = upper_bound
+                best_lower_bound = lower_bound
 
     print(min_unc)
-    print(best_bound)
+    print(best_upper_bound)
+    print(best_lower_bound)
 
-    # submission_df["pred_95_low"] = np.maximum(preds_test - bound * preds_test_residual, 0)
-    submission_df["pred_95_low"] = (preds_test - bound * preds_test_residual + 1) * test_offset
-    submission_df["pred_95_high"] = (preds_test + bound * preds_test_residual + 1) * test_offset
+    # submission_df["pred_95_low"] = np.maximum(preds_test - upper_bound * preds_test_residual, 0)
+    submission_df["pred_95_low"] = (preds_test - best_lower_bound * preds_test_residual + 1) * test_offset
+    submission_df["pred_95_high"] = (preds_test + best_upper_bound * preds_test_residual + 1) * test_offset
     submission_df["prediction"] = (preds_test + 1) * (test_offset)
 
     # print(submission_df[submission_df.prediction < 0])
