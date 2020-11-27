@@ -18,8 +18,6 @@ def postprocess_submission(submission_df):
     both_ds.loc[both_ds["volume"].notnull(), "prediction"] = both_ds[both_ds["volume"].notnull()]["volume"].values
     both_ds.loc[both_ds["volume"].notnull(), "pred_95_high"] = both_ds[both_ds["volume"].notnull()]["volume"].values + 0.01
     both_ds.loc[both_ds["volume"].notnull(), "pred_95_low"] = both_ds[both_ds["volume"].notnull()]["volume"].values - 0.01
-    # both_ds[both_ds["volume"].notnull()]["pred_95_high"] = both_ds[both_ds["volume"].notnull()]["volume"]
-    # both_ds[both_ds["volume"].notnull()]["pred_95_low"] = both_ds[both_ds["volume"].notnull()]["volume"]
 
     final_cols = join_on + ["pred_95_low", "prediction", "pred_95_high"]
 
