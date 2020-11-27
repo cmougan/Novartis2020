@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def postprocess_submission(submission_df):
+def postprocess_submission(submission_df, solve_submission_issues=True):
 
     join_on = ["country", "brand", "month_num"]
     keep = join_on + ["volume"]
@@ -21,4 +21,24 @@ def postprocess_submission(submission_df):
 
     final_cols = join_on + ["pred_95_low", "prediction", "pred_95_high"]
 
-    return both_ds.loc[:, final_cols]
+    final_df =  both_ds.loc[:, final_cols]
+
+    if solve_submission_issues:
+
+        if (final_df.pred_95_low > final_df.pred_95_high).any():
+            raise("Stop please, upper < lower")
+
+        cond_lower_mean = final_df.pred_95_low > final_df.prediction
+        if cond_lower_mean.any():
+            print("Solving lower > mean")
+            final_df.loc[cond_lower_mean, "prediction"] = \
+                final_df.loc[cond_lower_mean, "pred_95_low"] + 0.01
+
+        cond_upper_mean = final_df.prediction > final_df.pred_95_high
+        if cond_upper_mean.any():
+            print("Solving upper < mean")
+            final_df.loc[cond_upper_mean, "prediction"] = \
+                final_df.loc[cond_upper_mean, "pred_95_high"] - 0.01
+
+
+    return final_df
