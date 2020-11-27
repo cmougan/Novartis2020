@@ -3,14 +3,9 @@ import re
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
-from sklearn.linear_model import LinearRegression
 from category_encoders import TargetEncoder
-from sktools.encoders import QuantileEncoder
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import (
-    train_test_split, cross_val_predict
-)
 from tools.metrics import (
     apply_metrics,
     prep_data_for_metric,
