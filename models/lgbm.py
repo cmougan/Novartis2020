@@ -52,12 +52,12 @@ def preprocess(X):
 if __name__ == "__main__":
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
-    volume_features = pd.read_csv("data/volume_features.csv")
+    # volume_features = pd.read_csv("data/volume_features.csv")
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
 
-    full_df = full_df.merge(volume_features, on=["country", "brand"])
+    # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
     full_df["volume_offset"] = (full_df["volume"] - full_df[offset_name]) / full_df[offset_name]
     full_df = preprocess(full_df)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    bounds = [1]
+    bounds = [10]
 
     min_unc = 1e8
     best_upper_bound = 0
@@ -181,5 +181,9 @@ if __name__ == "__main__":
     # print(submission_df[submission_df.prediction < 0])
     submission_df = postprocess_submission(submission_df)
 
-    # submission_df.to_csv("submissions/baseline_relative_postprocess.csv", index=False)
+    submission_df["pred_95_low"] = np.maximum(submission_df["pred_95_low"], 0)
+    submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
+    submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
+
+    submission_df.to_csv("submissions/baseline_lgbm_offset.csv", index=False)
 
