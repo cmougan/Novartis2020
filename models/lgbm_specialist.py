@@ -17,8 +17,6 @@ from models.lgbm import (compute_metrics, preprocess)
 offset_name = "last_before_3_after_0"
 
 
-
-
 if __name__ == "__main__":
 
     file_name = "specialist"
@@ -30,12 +28,16 @@ if __name__ == "__main__":
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
+    max_months = pd.read_csv("data/max_months.csv")
 
     full_df_raw["volume_offset"] = (full_df_raw["volume"] - full_df_raw[offset_name]) / full_df_raw[offset_name]
 
     full_df_raw = preprocess(full_df_raw)
 
-    for time in range(1, 24):
+    for time in (range(1, 24)):
+
+        print("-" * 20)
+        print(f"Time {time}")
 
         specialist = pd.read_csv(f"specialist/vol_{time}.csv")
 
@@ -45,29 +47,31 @@ if __name__ == "__main__":
 
         full_df = full_df[full_df.test == 0]
 
-        test_df = test_df[test_df.month_num == time]
+        test_df = test_df[test_df.month_num >= time].reset_index(drop=True)
 
         # Only keep elements in full
         test_df = test_df.merge(
-            full_df.loc[full_df.month_num == time, ["country", "brand"]].drop_duplicates(),
+            full_df.loc[:, ["country", "brand"]].drop_duplicates(),
             how="inner"
         )
 
-        print("-" * 20)
-        print(test_df.shape)
-        print("-" * 20)
-        print(test_df[(test_df.brand == "brand_121") * (test_df.country == "country_1")])
+        test_df = test_df.merge(max_months, how='left', on=["country", "brand"])
+        test_df = test_df[test_df.max_month == time].reset_index(drop=True)
+        test_df = test_df.drop(columns=["max_month", "max_month_1"])
 
-        if test_df.shape[0] == 0: continue
+        if test_df.shape[0] == 0:
+            continue
+        else:
+            print("Gonna train")
 
         submission_df = pd.read_csv("data/submission_template.csv")
 
         submission_df = submission_df.merge(
-            test_df.loc[test_df.month_num == time, ["country", "brand"]].drop_duplicates(),
+            test_df.loc[:, ["country", "brand", "month_num"]].drop_duplicates(),
             how="inner"
         )
 
-        submission_df = submission_df.loc[submission_df.month_num == time]
+        submission_df = submission_df.loc[submission_df.month_num >= time].reset_index(drop=True)
 
         train_df = full_df.merge(train_tuples, how="inner").reset_index(drop=True)
         val_df = full_df.merge(valid_tuples, how="inner").reset_index(drop=True)
@@ -127,7 +131,6 @@ if __name__ == "__main__":
             preds[quantile] = pipes[quantile].predict(val_x)
             preds_test[quantile] = pipes[quantile].predict(test_x)
 
-        # bounds = [0, ,0.5, 1, 1.5, 2]
         upper_bounds = [1.]
         lower_bounds = [1.]
 
@@ -140,14 +143,14 @@ if __name__ == "__main__":
                 print(f"Upper bound: {upper_bound}")
                 print(f"Lower bound: {lower_bound}")
                 metric_pair = compute_metrics(
-                        preds=preds[0.5],
-                        lower=preds[0.25] * lower_bound,
-                        upper=preds[0.75] * upper_bound,
-                        y=val_y_raw,
-                        offset=val_offset,
-                        X=val_x,
-                        avg_volumes=avg_volumes
-                    )
+                    preds=preds[0.5],
+                    lower=preds[0.25] * lower_bound,
+                    upper=preds[0.75] * upper_bound,
+                    y=val_y_raw,
+                    offset=val_offset,
+                    X=val_x,
+                    avg_volumes=avg_volumes
+                )
                 print(metric_pair)
 
                 unc_metric = metric_pair.values[1]
@@ -161,17 +164,6 @@ if __name__ == "__main__":
         print(best_upper_bound)
         print(best_lower_bound)
 
-        save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
-        save_val["y"] = val_y_raw
-        save_val["lower"] = preds[0.25] * best_lower_bound
-        save_val["upper"] = preds[0.75] * best_upper_bound
-        save_val["preds"] = preds[0.5]
-        save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
-        save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
-        save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
-        if save:
-            save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
-
         # Retrain with full data -> In case of need
         if retrain_full_data:
 
@@ -183,8 +175,8 @@ if __name__ == "__main__":
 
                 preds_test[quantile] = pipes[quantile].predict(test_x)
 
-        submission_df["pred_95_low"] = (preds_test[0.25] * best_lower_bound + 1) * test_offset
-        submission_df["pred_95_high"] = (preds_test[0.75] * best_upper_bound + 1) * test_offset
+        submission_df["pred_95_low"] = (preds_test[0.25] * 1 + 1) * test_offset
+        submission_df["pred_95_high"] = (preds_test[0.75] * 1 + 1) * test_offset
         submission_df["prediction"] = (preds_test[0.5] + 1) * test_offset
 
         wrong_cond = submission_df.pred_95_low > submission_df.pred_95_high
@@ -194,5 +186,12 @@ if __name__ == "__main__":
         submission_df.loc[wrong_cond, "pred_95_low"] = aux_high
         submission_df.loc[wrong_cond, "pred_95_high"] = aux_low
 
-        submission_df.to_csv(f"specialist/specialist_submission_{time}.csv", index=False)
+        if time == 1:
+            full_submission = submission_df
+        else:
+
+            print("-" * 25)
+            full_submission = full_submission.append(submission_df).reset_index(drop=True)
+
+    full_submission.to_csv(f"specialist/specialist_submission.csv", index=False)
 
