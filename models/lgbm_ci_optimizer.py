@@ -18,7 +18,7 @@ from tools.metrics import (
 
 from tools.postprocessing import postprocess_submission
 
-offset_name = "last_before_3_after_1"
+offset_name = "last_before_3_after_0"
 
 
 def compute_metrics(preds, lower, upper, y, offset, X, avg_volumes):

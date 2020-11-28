@@ -102,14 +102,22 @@ if __name__ == "__main__":
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
-    #
-    # feat_01 = pd.read_csv("data/feat_01.csv")
-    #
-    # full_df = full_df.merge(
-    #     feat_01,
-    #     on=["country", "brand", "month_num"],
-    #     how="left"
-    # )
+
+    feat_01 = pd.read_csv("data/feat_01.csv")
+
+    full_df = full_df.merge(
+        feat_01,
+        on=["country", "brand", "month_num"],
+        how="left"
+    )
+
+    gx_month = pd.read_csv("data/gx_month.csv")
+
+    full_df = full_df.merge(
+        gx_month,
+        on=["country", "brand", "month_name"],
+        how="left"
+    )
 
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 

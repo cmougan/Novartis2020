@@ -13,15 +13,15 @@ from tools.metrics import (
 from tools.postprocessing import postprocess_submission
 from models.lgbm import (compute_metrics, preprocess)
 
-offset_name = "last_before_3_after_1"
+offset_name = "last_before_3_after_0"
 
 
 
 
 if __name__ == "__main__":
 
-    file_name = "quantiles_bgfix"
-    save = True
+    file_name = "quantiles"
+    save = False
     retrain_full_data = True
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
@@ -29,6 +29,14 @@ if __name__ == "__main__":
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
+
+    gx_month = pd.read_csv("data/gx_month.csv")
+
+    full_df = full_df.merge(
+        gx_month,
+        on=["country", "brand", "month_name"],
+        how="left"
+    )
 
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 

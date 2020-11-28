@@ -36,6 +36,14 @@ if __name__ == "__main__":
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
 
+    gx_month = pd.read_csv("data/gx_month.csv")
+
+    full_df = full_df.merge(
+        gx_month,
+        on=["country", "brand", "month_name"],
+        how="left"
+    )
+
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
     full_df["volume_offset"] = (full_df["volume"] - full_df[offset_name]) / full_df[offset_name]
