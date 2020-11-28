@@ -39,6 +39,11 @@ def preprocess(X):
     X = X.copy()
 
     offset = X[offset_name]
+    # Channel
+    # X["channel_"] = "Mixed"
+    # X.loc[X["B"] > 75, "channel_"] = "B"
+    # X.loc[X["C"] > 75, "channel_"] = "C"
+    # X.loc[X["D"] > 75, "channel_"] = "D"
 
     # More data for target encoding
     X["month_country"] = X["month_name"] + "_" + X["country"]
@@ -50,6 +55,13 @@ def preprocess(X):
     X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
     X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
     X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
+
+    # X["presentation_therapeutic"] = X["therapeutic_area"] + "_" + X["presentation"]
+    # X["therapeutic_channel"] = X["therapeutic_area"] + "_" + X["channel_"]
+    # X["presentation_channel"] = X["presentation"] + "_" + X["channel_"]
+    # X["country_channel"] = X["country"] + "_" + X["channel_"]
+    # X["brand_channel"] = X["brand"] + "_" + X["channel_"]
+    # X["country_presentation"] = X["country"] + "_" + X["presentation"] + "_" + X["month_num"].map(str)
 
     #
     # categorical_cols_freq = [
@@ -70,6 +82,9 @@ def preprocess(X):
         if re.match(r".*mean|median", col):
             X[col] = (X[col] - offset) / offset
 
+        # if re.match(r".*Inf", col):
+        #     X.drop(columns=col)
+
     X["n_channels"] = (X["A"] > 10).astype(int) + \
                       (X["B"] > 10).astype(int) + \
                       (X["C"] > 10).astype(int)
@@ -79,7 +94,7 @@ def preprocess(X):
 if __name__ == "__main__":
 
     file_name = "target_encoders"
-    save = True
+    save = False
     retrain_full_data = False
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
@@ -87,6 +102,14 @@ if __name__ == "__main__":
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
+    #
+    # feat_01 = pd.read_csv("data/feat_01.csv")
+    #
+    # full_df = full_df.merge(
+    #     feat_01,
+    #     on=["country", "brand", "month_num"],
+    #     how="left"
+    # )
 
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
@@ -108,7 +131,14 @@ if __name__ == "__main__":
         "country", "brand", "therapeutic_area", "presentation", "month_name",
         "month_country", "month_presentation", "month_area",
         "month_country_num", "month_presentation_num", "month_area_num",
-        "month_month_num"
+        "month_month_num",
+        # "presentation_therapeutic",
+        # "therapeutic_channel",
+        # "presentation_channel",
+        # "country_channel",
+        # "brand_channel",
+        # "channel_",
+        # "country_presentation"
     ]
 
     # Prep data
