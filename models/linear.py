@@ -26,6 +26,8 @@ offset_name = "last_before_3_after_0"
 if __name__ == "__main__":
 
     file_name = "linear_base"
+    save = True
+    retrain_full_data = False
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     # volume_features = pd.read_csv("data/volume_features.csv")
@@ -159,18 +161,15 @@ if __name__ == "__main__":
     save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
     save_val["y"] = val_y_raw
     save_val["lower"] = preds - best_lower_bound * preds_residual
-    save_val["upper"] = preds - best_upper_bound * preds_residual
+    save_val["upper"] = preds + best_upper_bound * preds_residual
     save_val["preds"] = preds
     save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
     save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
     save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
-    save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
-
+    if save:
+        save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
 
     # Retrain with full data -> In case of need
-
-    retrain_full_data = False
-
     if retrain_full_data:
 
         cv_preds_full = cross_val_predict(pipe_linear, full_x, full_y)
@@ -194,5 +193,6 @@ if __name__ == "__main__":
     submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
     submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
 
-    submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
+    if save:
+        submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
 

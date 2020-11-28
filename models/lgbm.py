@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.linear_model import LinearRegression
-from category_encoders import TargetEncoder
+from category_encoders import TargetEncoder, CountEncoder
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
@@ -51,6 +51,21 @@ def preprocess(X):
     X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
     X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
 
+    #
+    # categorical_cols_freq = [
+    #     "country", "brand", "therapeutic_area", "presentation", "month_name",
+    # ]
+    #
+    # freq_encoder_feats = CountEncoder(cols=categorical_cols_freq).fit_transform(
+    #     full_df.loc[:, categorical_cols_freq]
+    # )
+    #
+    # freq_encoder_feats.columns = [
+    #     f"{col}_freq" for col in freq_encoder_feats.columns
+    # ]
+    #
+    # X = pd.concat([X, freq_encoder_feats], axis=1)
+
     for col in X.columns:
         if re.match(r".*mean|median", col):
             X[col] = (X[col] - offset) / offset
@@ -60,9 +75,12 @@ def preprocess(X):
                       (X["C"] > 10).astype(int)
     return X
 
+
 if __name__ == "__main__":
 
     file_name = "target_encoders"
+    save = True
+    retrain_full_data = False
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     # volume_features = pd.read_csv("data/volume_features.csv")
@@ -117,7 +135,7 @@ if __name__ == "__main__":
         n_jobs=-1, n_estimators=50, objective="regression_l1"
     )
     lgb_residual = LGBMRegressor(
-        n_jobs=-1, n_estimators=50, objective="regression_l1"
+        n_jobs=-1, n_estimators=10, objective="regression_l1"
     )
 
     pipe = Pipeline([
@@ -179,18 +197,17 @@ if __name__ == "__main__":
     save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
     save_val["y"] = val_y_raw
     save_val["lower"] = preds - best_lower_bound * preds_residual
-    save_val["upper"] = preds - best_upper_bound * preds_residual
+    save_val["upper"] = preds + best_upper_bound * preds_residual
     save_val["preds"] = preds
     save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
     save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
     save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
-    save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
 
+    if save:
+        save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
+        val_x.to_csv(f"data/blend/val_x.csv", index=False)
 
     # Retrain with full data -> In case of need
-
-    retrain_full_data = False
-
     if retrain_full_data:
 
         cv_preds_full = cross_val_predict(pipe, full_x, full_y)
@@ -213,6 +230,6 @@ if __name__ == "__main__":
     submission_df["pred_95_low"] = np.maximum(submission_df["pred_95_low"], 0)
     submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
     submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
-
-    submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
+    if save:
+        submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
 
