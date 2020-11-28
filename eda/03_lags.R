@@ -7,10 +7,17 @@ source("tools/feat_eng.R")
 gx_merged_raw <- read.csv("data/gx_merged.csv") %>% as_tibble()
 gx_volume <- read.csv("data/gx_volume.csv") %>% select(-X) %>% as_tibble()
 
+gx_month <- gx_volume %>%
+  add_rolling_stats_month(3, 0) %>% 
+  add_rolling_stats_month(Inf, 0)
 
-View(gx_merged_raw)
+gx_month <- gx_month %>% ungroup %>% 
+  filter(month_num >= -12, month_num < 0) %>% 
+  select(-month_num, -volume)
 
-gx_volume_brand_country <- gx_volume %>% 
+write.csv(gx_month, file = "data/gx_month.csv", row.names = F)
+
+gx_volume_brand_country <- gx_volume %>%
   add_rolling_stats(24, 0) %>% 
   add_rolling_stats(12, 0) %>% 
   add_rolling_stats(Inf, 0) %>% 
