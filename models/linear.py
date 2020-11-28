@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
     train_cols = (train_x.columns)
     coefs = (pipe_linear[-1].coef_)
+    print(pipe_linear[-1].intercept_)
 
     coefs_dict = (dict(zip(train_cols, coefs)))
 
@@ -127,8 +128,6 @@ if __name__ == "__main__":
     val_input_linear = pd.concat([val_input_linear, val_df], axis=1)
     val_input_linear.to_csv("data/val_input_linear.csv", index=False)
 
-    print(val_input_linear)
-
     preds = pipe_linear.predict(val_x)
     preds_residual = pipe_residual.predict(val_x)
 
@@ -136,8 +135,8 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    upper_bounds = [1.2]
-    lower_bounds = [0.8]
+    upper_bounds = [1.2, 1, 0.8]
+    lower_bounds = [0.8, 1, 1.2]
 
     min_unc = 1e8
     best_upper_bound = 0
