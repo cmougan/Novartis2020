@@ -6,6 +6,7 @@ from sklearn.linear_model import ElasticNet
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from category_encoders import TargetEncoder
+from sktools.encoders import QuantileEncoder
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
@@ -25,9 +26,9 @@ offset_name = "last_before_3_after_0"
 
 if __name__ == "__main__":
 
-    file_name = "linear_base"
-    save = True
-    retrain_full_data = False
+    file_name = "linear_base_08_12_qe"
+    save = False
+    retrain_full_data = True
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     # volume_features = pd.read_csv("data/volume_features.csv")
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = TargetEncoder(cols=categorical_cols)
+    te = QuantileEncoder(cols=categorical_cols, quantile=0.5)
     te_residual = TargetEncoder(cols=categorical_cols)
 
     lgb_residual = LGBMRegressor(
@@ -126,13 +127,14 @@ if __name__ == "__main__":
     preds_test_residual = pipe_residual.predict(test_x)
 
     # bounds = [0, ,0.5, 1, 1.5, 2]
-    bounds = [1]
+    upper_bounds = [1.2]
+    lower_bounds = [0.8]
 
     min_unc = 1e8
     best_upper_bound = 0
     best_lower_bound = 0
-    for upper_bound in bounds:
-        for lower_bound in list(bounds):
+    for upper_bound in upper_bounds:
+        for lower_bound in lower_bounds:
 
             print(f"Upper bound: {upper_bound}")
             print(f"Lower bound: {lower_bound}")
@@ -155,8 +157,8 @@ if __name__ == "__main__":
                 best_lower_bound = lower_bound
 
     print(min_unc)
-    print(best_upper_bound)
-    print(best_lower_bound)
+    print(f"Best lower {best_lower_bound}")
+    print(f"Best upper {best_upper_bound}")
 
     save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
     save_val["y"] = val_y_raw
