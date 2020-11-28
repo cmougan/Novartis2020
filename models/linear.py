@@ -118,7 +118,16 @@ if __name__ == "__main__":
                 .rename(columns={0: "coef", "index": "feature"})
                 )
 
-    print(coefs_df)
+    coefs_df.to_csv("data/coefs.csv", index=False)
+
+    # val_input_linear = val_x.copy()
+    val_input_linear = pd.DataFrame(pipe_linear[:-1].transform(val_x))
+    val_input_linear.columns = [f"{col}_normalized" for col in val_x.columns]
+
+    val_input_linear = pd.concat([val_input_linear, val_df], axis=1)
+    val_input_linear.to_csv("data/val_input_linear.csv", index=False)
+
+    print(val_input_linear)
 
     preds = pipe_linear.predict(val_x)
     preds_residual = pipe_residual.predict(val_x)
