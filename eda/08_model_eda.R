@@ -8,20 +8,16 @@ theme_set(theme_minimal())
 val_linear <- read.csv("data/blend/val_linear_base_08_12_qe.csv")
 # val_linear <- read.csv("data/blend/val_quantiles.csv")
 
-gx <- read.csv("data/gx_merged.csv")
+gx_all <- read.csv("data/gx_merged.csv")
 lags <- read.csv("data/gx_merged_lags.csv")
 
 lags <- lags %>% select(country, brand, month_num, offset = last_before_12_after_0)
 
-gx <- gx %>% inner_join(val_linear, by = c("country", "brand", "month_num"))
-gx <- gx %>% left_join(lags, by = c("country", "brand", "month_num"))
+gx_all <- gx_all %>% left_join(lags, by = c("country", "brand", "month_num")) %>% filter(test == 0)
 
-gx$target <- (gx$volume - gx$offset) / gx$offset
+gx_all$target <- (gx_all$volume - gx_all$offset) / gx_all$offset
 
-gx$B
-
-gx <- gx %>% mutate(
-  absolute_difference = abs(preds - target), 
+gx_all <- gx_all %>% mutate(
   channel = case_when(
     B > 75 ~ "B",
     C > 75 ~ "C",
@@ -36,6 +32,13 @@ gx <- gx %>% mutate(
     T ~ "4. More than 20",
   )
 )
+
+
+gx <- gx_all %>% inner_join(val_linear, by = c("country", "brand", "month_num")) %>% 
+  mutate(
+    absolute_difference = abs(preds - target)
+  )
+
 
 gx %>%
   ggplot() + 
@@ -82,6 +85,7 @@ gx %>%
   facet_wrap(~presentation)
 
 
+gx %>% View
 
 gx %>% 
   ggplot(aes(x = as.factor(month_num), y = absolute_difference)) + 
@@ -89,7 +93,13 @@ gx %>%
   geom_smooth(aes(x = month_num, y = absolute_difference)) + 
   facet_wrap(~num_generics_fctr)
 
-gx %>% 
+
+
+# Interactions ------------------------------------------------------------
+
+
+# gx_all %>% filter(is.na(target)) %>% View
+gx_all %>% 
   ggplot(aes(x = month_num, y = target, color = channel)) + 
   geom_smooth(se = F) + 
   facet_wrap(~country)
@@ -117,16 +127,20 @@ gx %>%
 
 
 gx %>% 
-  filter(
-    country %in% c("country_12", "country_3"),
-    presentation %in% c("CREAM", "PILL")
-  ) %>%
-  ggplot(aes(x = month_num, y = target, color = presentation)) + 
-  geom_smooth(se = F, span = 1.) + 
-  facet_wrap(~country)
-
-gx %>% 
   ggplot(aes(x = month_num, y = target, color = presentation)) + 
   geom_smooth(se = F) + 
   facet_wrap(~country)
 
+
+gx %>% 
+  filter(
+    therapeutic_area %in% c("Nervous_system", "Cardiovascular_Metabolic", "Antineoplastic_and_immunology"),
+    # country %in% c("country_12", "country_15", "country_7", "country_3"),
+  ) %>% 
+  ggplot(aes(x = month_num, y = target, color = therapeutic_area)) + 
+  geom_smooth(se = F) +
+  facet_wrap(~country)
+
+
+gx %>% count(country, therapeutic_area, sort = T)
+gx %>% count(therapeutic_area, sort = T)

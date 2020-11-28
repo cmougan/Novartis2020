@@ -11,6 +11,7 @@ country <- read.csv("submissions/submission_country.csv")
 # baseline <- read.csv("submissions/lgbm_with_vol_feats.csv")
 baseline <- read.csv("~/Downloads/NN.csv")
 
+baseline %>% filter(country == "country_1", brand == "brand_121")
 baseline %>% count(pred_95_low > pred_95_high)
 baseline %>% count(pred_95_low > prediction)
 baseline %>% count(pred_95_high < prediction, pred_95_low > prediction)
@@ -31,6 +32,14 @@ merged %>%
   head(10)
 
 
-gx_merged_raw <- read.csv("data/gx_raw.csv") %>% as_tibble()
+gx_merged_raw <- read.csv("data/gx_volume.csv") %>% as_tibble()
 
-gx_merged_raw %>% filter(country == "country_16", brand == "brand_241") %>% View
+# gx_merged_raw %>% filter(country == "country_16", brand == "brand_241") %>% View
+
+
+gx_merged_raw %>% group_by(
+  country, brand
+) %>% 
+  summarise(max_month = max(month_num)) %>% 
+  ungroup() %>% 
+  count(max_month) %>% View
