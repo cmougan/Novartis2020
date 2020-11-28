@@ -11,10 +11,10 @@ gx_volume <- read.csv("data/gx_volume.csv") %>% select(-X) %>% as_tibble()
 View(gx_merged_raw)
 
 gx_volume_brand_country <- gx_volume %>% 
-  add_rolling_stats(24, 1) %>% 
-  add_rolling_stats(12, 1) %>% 
-  add_rolling_stats(Inf, 1) %>% 
-  add_rolling_stats(3, 1)
+  add_rolling_stats(24, 0) %>% 
+  add_rolling_stats(12, 0) %>% 
+  add_rolling_stats(Inf, 0) %>% 
+  add_rolling_stats(3, 0)
 
 gx_volume_brand_country <- gx_volume_brand_country %>% 
   filter(month_num == -1) %>% 
@@ -25,10 +25,10 @@ gx_volume_country <- gx_volume %>%
   group_by(country, month_num) %>%
   summarise(volume = sum(volume)) %>% 
   ungroup() %>% 
-  add_rolling_stats_country(24, 1) %>% 
-  add_rolling_stats_country(12, 1) %>% 
-  add_rolling_stats_country(Inf, 1) %>% 
-  add_rolling_stats_country(3, 1)
+  add_rolling_stats_country(24, 0) %>% 
+  add_rolling_stats_country(12, 0) %>% 
+  add_rolling_stats_country(Inf, 0) %>% 
+  add_rolling_stats_country(3, 0)
 
 gx_volume_country <- gx_volume_country %>% 
   filter(month_num == -1) %>% 
@@ -39,10 +39,10 @@ gx_volume_brand <- gx_volume %>%
   group_by(brand, month_num) %>%
   summarise(volume = sum(volume)) %>% 
   ungroup() %>% 
-  add_rolling_stats_brand(24, 1) %>% 
-  add_rolling_stats_brand(12, 1) %>% 
-  add_rolling_stats_brand(Inf, 1) %>% 
-  add_rolling_stats_brand(3, 1)
+  add_rolling_stats_brand(24, 0) %>% 
+  add_rolling_stats_brand(12, 0) %>% 
+  add_rolling_stats_brand(Inf, 0) %>% 
+  add_rolling_stats_brand(3, 0)
 
 gx_volume_brand <- gx_volume_brand %>% 
   filter(month_num == -1) %>% 
@@ -61,6 +61,28 @@ gx_merged <- gx_merged %>% left_join(gx_volume_country, by = c("country"))
 # View(gx_volume_country)
 
 write.csv(gx_merged, file = "data/gx_merged_lags.csv", row.names = F)
+
+
+gx_merged %>% filter(country == "country_1", brand == "brand_121") %>% View
+
+gx_merged %>% 
+  select(brand, month_num, country, last_before_3_after_0, volume) %>% 
+  filter(
+         country == "country_1", 
+         brand == "brand_3", )
+
+gx_volume %>% filter(
+  country == "country_1", 
+  brand == "brand_3", 
+) %>% mutate(
+  last = slide_dbl(volume, last, .before = 3, .after = -1)
+) %>% filter(month_num > -3)
+
+gx_volume %>% filter(
+  country == "country_1", 
+  brand == "brand_3", 
+  month_num %in% c(-1, 0, 1)
+  ) %>% select(month_num, volume)
 
 gx_merged %>% 
   group_by(test) %>% 

@@ -40,6 +40,8 @@ gx <- gx_all %>% inner_join(val_linear, by = c("country", "brand", "month_num"))
   )
 
 
+write.csv(gx, file = "data/gx_marc.csv", row.names = F)
+
 gx %>%
   ggplot() + 
   # geom_violin(aes(x = as.factor(month_num), y = target)) + 
@@ -51,14 +53,7 @@ gx %>%
 
 
 gx %>% 
-  group_by(
-    month_num
-  ) %>% 
-  summarise(
-    median_diff = median(absolute_difference)
-  ) %>% 
-  ggplot(aes(x = month_num, y = median_diff)) + 
-  geom_line() + 
+  ggplot(aes(x = month_num, y = absolute_difference)) + 
   geom_smooth()
 
 
