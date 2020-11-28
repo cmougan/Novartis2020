@@ -28,35 +28,41 @@ offset_name = "last_before_3_after_0"
 
 if __name__ == "__main__":
 
-    file_name = "blend_simple"
+    file_name_sv = "blend_simple"
     save = False
 
-    sub_te = pd.read_csv("submissions/submission_target_encoders.csv")
-    sub_linear = pd.read_csv("submissions/submission_linear_base.csv")
-    sub_quantile = pd.read_csv("submissions/submission_quantiles.csv")
+    submissions = {}
+    vals = {}
+    alphas = {}
 
-    val_te = pd.read_csv("data/blend/val_target_encoders.csv")
-    val_linear = pd.read_csv("data/blend/val_linear_base.csv")
-    val_quantile = pd.read_csv("data/blend/val_quantiles.csv")
+    file_names = ["linear_base", "linear_base_08_12_qe", "quantiles"]
+
+    for file_name in file_names:
+
+        submissions[file_name] = pd.read_csv(f"submissions/submission_{file_name}.csv")
+        vals[file_name] = pd.read_csv(f"data/blend/val_{file_name}.csv")
+
+    val_blend = vals[file_names[0]].copy()
+    sub_blend = submissions[file_names[0]].copy()
     val_x = pd.read_csv("data/blend/val_x.csv")
 
-    val_blend = val_te.copy()
-    sub_blend = sub_te.copy()
-
-    alpha = 0.5
+    alphas["linear_base"] = 0.4
+    alphas["linear_base_08_12_qe"] = 0.4
+    alphas["quantiles"] = 0.2
 
     for col in ["preds_raw", "lower_raw", "upper_raw"]:
-        # (alpha * val_te[col] / 2) + \
-        val_blend[col] = (alpha * val_quantile[col]) + \
-                         (1 - alpha) * val_linear[col]
+        acum = vals[file_names[0]][col] * 0
+        for file_name in file_names:
+            vals[file_name][col] = np.maximum(vals[file_name][col], 0)
+            acum += (alphas[file_name] * vals[file_name][col])
+        val_blend[col] = acum
 
     for col in ["pred_95_low", "prediction", "pred_95_high"]:
-        # (alpha * sub_te[col] / 2) + \
-        sub_blend[col] = (alpha * sub_quantile[col] ) + \
-                         (1 - alpha) * sub_linear[col]
-
-
-
+        acum = submissions[file_names[0]][col] * 0
+        for file_name in file_names:
+            submissions[file_name][col] = np.maximum(submissions[file_name][col], 0)
+            acum += (alphas[file_name] * submissions[file_name][col])
+        sub_blend[col] = acum
 
     metrics = compute_metrics_raw(
         preds=val_blend["preds_raw"],
@@ -74,6 +80,9 @@ if __name__ == "__main__":
     submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
     submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
     if save:
-        submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
+        submission_df.to_csv(
+            f"submissions/submission_{file_name_sv}.csv",
+            index=False
+        )
 
 
