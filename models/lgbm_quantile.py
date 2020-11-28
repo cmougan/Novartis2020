@@ -13,14 +13,14 @@ from tools.metrics import (
 from tools.postprocessing import postprocess_submission
 from models.lgbm import (compute_metrics, preprocess)
 
-offset_name = "last_before_3_after_0"
+offset_name = "last_before_3_after_1"
 
 
 
 
 if __name__ == "__main__":
 
-    file_name = "quantiles"
+    file_name = "quantiles_bgfix"
     save = True
     retrain_full_data = True
 
