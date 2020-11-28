@@ -10,6 +10,7 @@ from tools.metrics import (
 
 from tools.postprocessing import postprocess_submission
 
+
 def compute_metrics_raw(preds, lower, upper, y, X, avg_volumes):
 
     id_cols = ["country", "brand"]
@@ -23,13 +24,11 @@ def compute_metrics_raw(preds, lower, upper, y, X, avg_volumes):
 
     return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
 
-offset_name = "last_before_3_after_0"
-
 
 if __name__ == "__main__":
 
-    file_name_sv = "blend_simple"
-    save = False
+    file_name_sv = "blend_442"
+    save = True
 
     submissions = {}
     vals = {}
@@ -46,9 +45,9 @@ if __name__ == "__main__":
     sub_blend = submissions[file_names[0]].copy()
     val_x = pd.read_csv("data/blend/val_x.csv")
 
-    alphas["linear_base"] = 0.4
+    alphas["linear_base"] = 0.2
     alphas["linear_base_08_12_qe"] = 0.4
-    alphas["quantiles"] = 0.2
+    alphas["quantiles"] = 0.4
 
     for col in ["preds_raw", "lower_raw", "upper_raw"]:
         acum = vals[file_names[0]][col] * 0
