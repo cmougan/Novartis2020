@@ -17,9 +17,9 @@ def compute_metrics_raw(preds, lower, upper, y, X, avg_volumes):
     prepped_X = prep_data_for_metric(X, avg_volumes)
 
     prepped_X["actuals"] = y
-    prepped_X["forecast"] = preds
-    prepped_X["lower_bound"] = lower
-    prepped_X["upper_bound"] = upper
+    prepped_X["forecast"] = np.maximum(preds, 0)
+    prepped_X["lower_bound"] = np.maximum(lower, 0)
+    prepped_X["upper_bound"] = np.maximum(upper, 0)
 
     return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
 
