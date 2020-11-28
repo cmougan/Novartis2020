@@ -28,9 +28,9 @@ def compute_metrics(preds, lower, upper, y, offset, X, avg_volumes):
     prepped_X = prep_data_for_metric(X, avg_volumes)
 
     prepped_X["actuals"] = y
-    prepped_X["forecast"] = (preds + 1) * offset
-    prepped_X["lower_bound"] = (lower + 1) * offset
-    prepped_X["upper_bound"] = (upper + 1) * offset
+    prepped_X["forecast"] = np.maximum((preds + 1) * offset, 0)
+    prepped_X["lower_bound"] = np.maximum((lower + 1) * offset, 0)
+    prepped_X["upper_bound"] = np.maximum((upper + 1) * offset, 0)
 
     return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
 
