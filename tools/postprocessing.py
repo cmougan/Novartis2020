@@ -9,7 +9,7 @@ def postprocess_submission(submission_df, solve_submission_issues=True):
 
     # # Specialist model
     #
-    # specialist_df = pd.read_csv("data/specialist_submission.csv")
+    # specialist_df = pd.read_csv("specialist/specialist_submission.csv")
     # specialist_df = specialist_df.rename(columns={
     #     "prediction": "prediction_sp",
     #     "pred_95_high": "pred_95_high_sp",
