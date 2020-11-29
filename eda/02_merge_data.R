@@ -24,8 +24,10 @@ gx_vol_full <- gx_vol_full %>% left_join(gx_package, by = c("country", "brand"))
 gx_vol_full <- gx_vol_full %>% left_join(gx_panel_wide, by = c("country", "brand"))
 
 gx_merged <- gx_vol_full %>% filter(month_num >= 0)
+gx_raw <- gx_vol_full
 
 write.csv(gx_merged, file = "data/gx_merged.csv", row.names = F)
+write.csv(gx_raw, file = "data/gx_raw.csv", row.names = F)
 
 # gx_vol_full %>% summary()
 # 

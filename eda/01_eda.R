@@ -2,6 +2,9 @@
 
 library(dplyr)
 library(tidyr)
+library(ggplot2)
+
+theme_set(theme_minimal())
 
 
 gx_n_generics <- read.csv("data/gx_num_generics.csv") %>% select(-X) %>% as_tibble()
@@ -33,12 +36,20 @@ submission %>% filter(country == "country_1", brand == "brand_121")
 submission %>% count(country, brand) %>% dim
 
 
-target <- expand.grid(
-  unique(gx_volume$country),
-  unique(gx_volume$brand),
-  0:23
-)
+monthly_vol <- gx_volume %>% 
+  group_by(month_num) %>% 
+  summarise(mean_vol = mean(volume), med_vol = median(volume), quantile(volume, 0.05)) %>% 
+  filter(month_num >= 0)
 
-submission
-target
+View(monthly_vol)
+ggplot(monthly_vol) + 
+  # geom_line(aes(x = month_num, y = mean_vol, color = "mean")) + 
+  geom_line(aes(x = month_num, y = med_vol, color = "median"))
 
+
+gx_volume %>% 
+  group_by(month_num) %>% 
+  summarise(med_vol = median(volume))
+
+
+g
