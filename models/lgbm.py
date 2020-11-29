@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.linear_model import LinearRegression
-from category_encoders import TargetEncoder, CountEncoder
+from category_encoders import TargetEncoder, CountEncoder, OneHotEncoder
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
@@ -46,15 +46,15 @@ def preprocess(X):
     # X.loc[X["D"] > 75, "channel_"] = "D"
 
     # More data for target encoding
-    X["month_country"] = X["month_name"] + "_" + X["country"]
-    X["month_presentation"] = X["month_name"] + "_" + X["presentation"]
-    X["month_area"] = X["month_name"] + "_" + X["therapeutic_area"]
+    # X["month_country"] = X["month_name"] + "_" + X["country"]
+    # X["month_presentation"] = X["month_name"] + "_" + X["presentation"]
+    # X["month_area"] = X["month_name"] + "_" + X["therapeutic_area"]
 
     # Month-num
-    X["month_country_num"] = X["month_num"].map(str) + "_" + X["country"]
-    X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
-    X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
-    X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
+    # X["month_country_num"] = X["month_num"].map(str) + "_" + X["country"]
+    # X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
+    # X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
+    # X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
 
     # X["presentation_therapeutic"] = X["therapeutic_area"] + "_" + X["presentation"]
     # X["therapeutic_channel"] = X["therapeutic_area"] + "_" + X["channel_"]
@@ -167,8 +167,8 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = TargetEncoder(cols=categorical_cols)
-    te_residual = TargetEncoder(cols=categorical_cols)
+    te = OneHotEncoder(cols=categorical_cols)
+    te_residual = OneHotEncoder(cols=categorical_cols)
     lgb = LGBMRegressor(
         n_jobs=-1, n_estimators=50, objective="regression_l1"
     )

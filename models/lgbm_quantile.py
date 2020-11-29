@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
-from category_encoders import TargetEncoder
+from category_encoders import TargetEncoder, OneHotEncoder
 
 from sklearn.pipeline import Pipeline
 from tools.metrics import (
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     file_name = "quantiles"
     save = False
-    retrain_full_data = True
+    retrain_full_data = False
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
     # volume_features = pd.read_csv("data/volume_features.csv")
@@ -30,13 +30,17 @@ if __name__ == "__main__":
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
 
-    gx_month = pd.read_csv("data/gx_month.csv")
+    offsets = pd.read_csv("data/offsets.csv")
 
-    full_df = full_df.merge(
-        gx_month,
-        on=["country", "brand", "month_name"],
-        how="left"
-    )
+    full_df = full_df.merge(offsets, on=["country", "brand"])
+    #
+    # gx_month = pd.read_csv("data/gx_month.csv")
+    #
+    # full_df = full_df.merge(
+    #     gx_month,
+    #     on=["country", "brand", "month_name"],
+    #     how="left"
+    # )
 
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
@@ -56,9 +60,9 @@ if __name__ == "__main__":
     to_drop = ["volume", "volume_offset"]
     categorical_cols = [
         "country", "brand", "therapeutic_area", "presentation", "month_name",
-        "month_country", "month_presentation", "month_area",
-        "month_country_num", "month_presentation_num", "month_area_num",
-        "month_month_num"
+        # "month_country", "month_presentation", "month_area",
+        # "month_country_num", "month_presentation_num", "month_area_num",
+        # "month_month_num"
     ]
 
     # Prep data
@@ -79,8 +83,8 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = TargetEncoder(cols=categorical_cols)
-    te_residual = TargetEncoder(cols=categorical_cols)
+    te = OneHotEncoder(cols=categorical_cols)
+    te_residual = OneHotEncoder(cols=categorical_cols)
 
     lgbms = {}
     pipes = {}

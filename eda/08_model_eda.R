@@ -70,7 +70,9 @@ gx %>%
   ggplot(aes(x = as.factor(month_num), y = absolute_difference)) + 
   geom_boxplot() + 
   geom_smooth(aes(x = month_num, y = absolute_difference)) + 
-  facet_wrap(~ country)
+  facet_wrap(~ country) +
+  ylab("Model error") + 
+  xlab("Month after generic")
 
 
 gx %>% 

@@ -27,27 +27,32 @@ def compute_metrics_raw(preds, lower, upper, y, X, avg_volumes):
 
 if __name__ == "__main__":
 
-    file_name_sv = "blend_442"
+    file_name_sv = "blend_442_vanilla_oh"
     save = True
 
     submissions = {}
     vals = {}
     alphas = {}
 
-    file_names = ["linear_base", "linear_base_08_12_qe", "quantiles"]
+    file_names = ["linear_base", "linear_base_08_12_qe", "ensemble_vanilla", "linear_oh"]
 
     for file_name in file_names:
 
-        submissions[file_name] = pd.read_csv(f"submissions/submission_{file_name}.csv")
-        vals[file_name] = pd.read_csv(f"data/blend/val_{file_name}.csv")
+        submissions[file_name] = pd.read_csv(f"data/blend_1/submission_{file_name}.csv")
+        vals[file_name] = pd.read_csv(f"data/blend_1/val_{file_name}.csv")
 
     val_blend = vals[file_names[0]].copy()
     sub_blend = submissions[file_names[0]].copy()
     val_x = pd.read_csv("data/blend/val_x.csv")
 
-    alphas["linear_base"] = 0.2
-    alphas["linear_base_08_12_qe"] = 0.4
-    alphas["quantiles"] = 0.4
+    alphas["linear_base"] = 0.1
+    alphas["linear_base_08_12_qe"] = 0.2
+    alphas["ensemble_vanilla"] = 0.1
+    alphas["linear_oh"] = 0.6
+
+    vals["ensemble_vanilla"]["preds_raw"] = (1 + vals["ensemble_vanilla"]["preds_raw"]) * val_x["last_before_3_after_0"]
+    vals["ensemble_vanilla"]["lower_raw"] = (1 + vals["ensemble_vanilla"]["lower_raw"]) * val_x["last_before_3_after_0"]
+    vals["ensemble_vanilla"]["upper_raw"] = (1 + vals["ensemble_vanilla"]["upper_raw"]) * val_x["last_before_3_after_0"]
 
     for col in ["preds_raw", "lower_raw", "upper_raw"]:
         acum = vals[file_names[0]][col] * 0

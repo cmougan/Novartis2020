@@ -2,10 +2,10 @@
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
-from sklearn.linear_model import ElasticNet
+from sklearn.linear_model import ElasticNet, LinearRegression
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from category_encoders import TargetEncoder
+from category_encoders import TargetEncoder, OneHotEncoder
 from sktools.encoders import QuantileEncoder
 
 from sklearn.pipeline import Pipeline
@@ -26,8 +26,8 @@ offset_name = "last_before_3_after_0"
 
 if __name__ == "__main__":
 
-    file_name = "linear_base_08_12_qe"
-    save = False
+    file_name = "linear_oh"
+    save = True
     retrain_full_data = True
 
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
@@ -62,9 +62,9 @@ if __name__ == "__main__":
     to_drop = ["volume", "volume_offset"]
     categorical_cols = [
         "country", "brand", "therapeutic_area", "presentation", "month_name",
-        "month_country", "month_presentation", "month_area",
-        "month_country_num", "month_presentation_num", "month_area_num",
-        "month_month_num"
+        # "month_country", "month_presentation", "month_area",
+        # "month_country_num", "month_presentation_num", "month_area_num",
+        # "month_month_num"
     ]
 
     # Prep data
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = QuantileEncoder(cols=categorical_cols, quantile=0.5)
-    te_residual = TargetEncoder(cols=categorical_cols)
+    te = OneHotEncoder(cols=categorical_cols)
+    te_residual = OneHotEncoder(cols=categorical_cols)
 
     lgb_residual = LGBMRegressor(
         n_jobs=-1, n_estimators=50, objective="regression_l1"
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         ("te", te),
         ("imp", SimpleImputer(strategy="mean")),
         ("sc", StandardScaler()),
-        ("lgb", ElasticNet(alpha=.0005))
+        ("lgb", ElasticNet(alpha=0.01))
     ])
 
     pipe_residual = Pipeline([
@@ -111,30 +111,30 @@ if __name__ == "__main__":
     pipe_linear.fit(train_x, train_y)
     pipe_residual.fit(train_x, train_y_residual)
 
-    train_cols = (train_x.columns)
-    coefs = (pipe_linear[-1].coef_)
-    print(pipe_linear[-1].intercept_)
-
-    coefs_dict = (dict(zip(train_cols, coefs)))
-
-    coefs_dict_clean = {
-        key: value for key, value in coefs_dict.items() if value != 0
-    }
-
-    coefs_df = (pd.DataFrame
-                .from_dict(coefs_dict_clean, orient="index")
-                .reset_index()
-                .rename(columns={0: "coef", "index": "feature"})
-                )
-
-    coefs_df.to_csv("data/coefs.csv", index=False)
+    # train_cols = (train_x.columns)
+    # coefs = (pipe_linear[-1].coef_)
+    # print(pipe_linear[-1].intercept_)
+    #
+    # coefs_dict = (dict(zip(train_cols, coefs)))
+    #
+    # coefs_dict_clean = {
+    #     key: value for key, value in coefs_dict.items() if value != 0
+    # }
+    #
+    # coefs_df = (pd.DataFrame
+    #             .from_dict(coefs_dict_clean, orient="index")
+    #             .reset_index()
+    #             .rename(columns={0: "coef", "index": "feature"})
+    #             )
+    #
+    # coefs_df.to_csv("data/coefs.csv", index=False)
 
     # val_input_linear = val_x.copy()
-    val_input_linear = pd.DataFrame(pipe_linear[:-1].transform(val_x))
-    val_input_linear.columns = [f"{col}_normalized" for col in val_x.columns]
-
-    val_input_linear = pd.concat([val_input_linear, val_df], axis=1)
-    val_input_linear.to_csv("data/val_input_linear.csv", index=False)
+    # val_input_linear = pd.DataFrame(pipe_linear[:-1].transform(val_x))
+    # val_input_linear.columns = [f"{col}_normalized" for col in val_x.columns]
+    #
+    # val_input_linear = pd.concat([val_input_linear, val_df], axis=1)
+    # val_input_linear.to_csv("data/val_input_linear.csv", index=False)
 
     preds = pipe_linear.predict(val_x)
     preds_residual = pipe_residual.predict(val_x)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
     save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
     if save:
-        save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
+        save_val.to_csv(f"data/blend_1/val_{file_name}.csv", index=False)
 
     # Retrain with full data -> In case of need
     if retrain_full_data:
@@ -212,5 +212,5 @@ if __name__ == "__main__":
     submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
 
     if save:
-        submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
+        submission_df.to_csv(f"data/blend_1/submission_{file_name}.csv", index=False)
 

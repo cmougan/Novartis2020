@@ -60,7 +60,9 @@ gx_full %>%
     mean_vol = mean(target)
   ) %>% 
   ggplot(aes(x = month_num, y = mean_vol, color = train, group = train)) +
-  geom_line()
+  geom_line() +
+  xlab("Month after generics") + 
+  ylab("Transformed ")
 
 
 # Time evolution ----------------------------------------------------------
