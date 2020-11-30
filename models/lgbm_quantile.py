@@ -177,4 +177,3 @@ if __name__ == "__main__":
     if save:
         submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
 
-
