@@ -3,55 +3,46 @@ import re
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
-from category_encoders import TargetEncoder
+from category_encoders import TargetEncoder, OneHotEncoder
 
 from sklearn.pipeline import Pipeline
 from tools.metrics import (
-    apply_metrics,
-    prep_data_for_metric,
     get_avg_volumes,
 )
 
 from tools.postprocessing import postprocess_submission
+from models.lgbm import (compute_metrics, preprocess)
 
 offset_name = "last_before_3_after_0"
 
 
-def compute_metrics(preds, lower, upper, y, offset, X, avg_volumes):
 
-    id_cols = ["country", "brand"]
-
-    prepped_X = prep_data_for_metric(X, avg_volumes)
-
-    prepped_X["actuals"] = y
-    prepped_X["forecast"] = (preds + 1) * offset
-    prepped_X["lower_bound"] = (lower + 1) * offset
-    prepped_X["upper_bound"] = (upper + 1) * offset
-
-
-    return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
-
-def preprocess(X):
-
-    X = X.copy()
-
-    offset = X[offset_name]
-
-    for col in X.columns:
-        if re.match(r".*mean|median", col):
-            X[col] = (X[col] - offset) / offset
-
-    return X
 
 if __name__ == "__main__":
 
+    file_name = "quantiles"
+    save = False
+    retrain_full_data = False
+
     full_df = pd.read_csv("data/gx_merged_lags_months.csv")
-    volume_features = pd.read_csv("data/volume_features.csv")
+    # volume_features = pd.read_csv("data/volume_features.csv")
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
 
-    full_df = full_df.merge(volume_features, on=["country", "brand"])
+    offsets = pd.read_csv("data/offsets.csv")
+
+    full_df = full_df.merge(offsets, on=["country", "brand"])
+    #
+    # gx_month = pd.read_csv("data/gx_month.csv")
+    #
+    # full_df = full_df.merge(
+    #     gx_month,
+    #     on=["country", "brand", "month_name"],
+    #     how="left"
+    # )
+
+    # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
     full_df["volume_offset"] = (full_df["volume"] - full_df[offset_name]) / full_df[offset_name]
     full_df = preprocess(full_df)
@@ -67,7 +58,12 @@ if __name__ == "__main__":
     avg_volumes = get_avg_volumes()
 
     to_drop = ["volume", "volume_offset"]
-    categorical_cols = ["country", "brand", "therapeutic_area", "presentation", "month_name"]
+    categorical_cols = [
+        "country", "brand", "therapeutic_area", "presentation", "month_name",
+        # "month_country", "month_presentation", "month_area",
+        # "month_country_num", "month_presentation_num", "month_area_num",
+        # "month_month_num"
+    ]
 
     # Prep data
     train_x = train_df.drop(columns=to_drop)
@@ -87,8 +83,8 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = TargetEncoder(cols=categorical_cols)
-    te_residual = TargetEncoder(cols=categorical_cols)
+    te = OneHotEncoder(cols=categorical_cols)
+    te_residual = OneHotEncoder(cols=categorical_cols)
 
     lgbms = {}
     pipes = {}
@@ -147,14 +143,23 @@ if __name__ == "__main__":
     print(best_upper_bound)
     print(best_lower_bound)
 
+    save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
+    save_val["y"] = val_y_raw
+    save_val["lower"] = preds[0.25] * best_lower_bound
+    save_val["upper"] = preds[0.75] * best_upper_bound
+    save_val["preds"] = preds[0.5]
+    save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
+    save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
+    save_val["preds_raw"] = (1 + save_val["preds"]) * val_offset
+    if save:
+        save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
+
     # Retrain with full data -> In case of need
-
-    retrain_full_data = False
-
     if retrain_full_data:
 
         for quantile in [0.5, 0.25, 0.75]:
 
+            print(f"Retraining {quantile}")
             # Fit cv model
             pipes[quantile].fit(full_x, full_y)
 
@@ -166,5 +171,9 @@ if __name__ == "__main__":
 
     submission_df = postprocess_submission(submission_df)
 
-    # submission_df.to_csv("submissions/baseline_relative_postprocess.csv", index=False)
+    submission_df["pred_95_low"] = np.maximum(submission_df["pred_95_low"], 0)
+    submission_df["pred_95_high"] = np.maximum(submission_df["pred_95_high"], 0)
+    submission_df["prediction"] = np.maximum(submission_df["prediction"], 0)
+    if save:
+        submission_df.to_csv(f"submissions/submission_{file_name}.csv", index=False)
 

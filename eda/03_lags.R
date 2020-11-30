@@ -7,10 +7,17 @@ source("tools/feat_eng.R")
 gx_merged_raw <- read.csv("data/gx_merged.csv") %>% as_tibble()
 gx_volume <- read.csv("data/gx_volume.csv") %>% select(-X) %>% as_tibble()
 
+gx_month <- gx_volume %>%
+  add_rolling_stats_month(3, 0) %>% 
+  add_rolling_stats_month(Inf, 0)
 
-View(gx_merged_raw)
+gx_month <- gx_month %>% ungroup %>% 
+  filter(month_num >= -12, month_num < 0) %>% 
+  select(-month_num, -volume)
 
-gx_volume_brand_country <- gx_volume %>% 
+write.csv(gx_month, file = "data/gx_month.csv", row.names = F)
+
+gx_volume_brand_country <- gx_volume %>%
   add_rolling_stats(24, 0) %>% 
   add_rolling_stats(12, 0) %>% 
   add_rolling_stats(Inf, 0) %>% 
@@ -61,6 +68,28 @@ gx_merged <- gx_merged %>% left_join(gx_volume_country, by = c("country"))
 # View(gx_volume_country)
 
 write.csv(gx_merged, file = "data/gx_merged_lags.csv", row.names = F)
+
+
+gx_merged %>% filter(country == "country_1", brand == "brand_121") %>% View
+
+gx_merged %>% 
+  select(brand, month_num, country, last_before_3_after_0, volume) %>% 
+  filter(
+         country == "country_1", 
+         brand == "brand_3", )
+
+gx_volume %>% filter(
+  country == "country_1", 
+  brand == "brand_3", 
+) %>% mutate(
+  last = slide_dbl(volume, last, .before = 3, .after = -1)
+) %>% filter(month_num > -3)
+
+gx_volume %>% filter(
+  country == "country_1", 
+  brand == "brand_3", 
+  month_num %in% c(-1, 0, 1)
+  ) %>% select(month_num, volume)
 
 gx_merged %>% 
   group_by(test) %>% 

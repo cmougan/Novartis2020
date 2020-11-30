@@ -7,8 +7,34 @@ def postprocess_submission(submission_df, solve_submission_issues=True):
     join_on = ["country", "brand", "month_num"]
     keep = join_on + ["volume"]
 
-    df_vol = pd.read_csv("../data/gx_volume.csv").loc[:, keep]
+    # # Specialist model
+    #
+    # specialist_df = pd.read_csv("specialist/specialist_submission.csv")
+    # specialist_df = specialist_df.rename(columns={
+    #     "prediction": "prediction_sp",
+    #     "pred_95_high": "pred_95_high_sp",
+    #     "pred_95_low": "pred_95_low_sp",
+    # })
+    #
+    # both_ds = submission_df.merge(
+    #     specialist_df,
+    #     on=join_on,
+    #     how="left",
+    # )
+    #
+    # both_ds.loc[both_ds["prediction_sp"].notnull(), "prediction"] = both_ds[both_ds["prediction_sp"].notnull()]["prediction_sp"].values
+    # both_ds.loc[both_ds["pred_95_high_sp"].notnull(), "pred_95_high"] = both_ds[both_ds["pred_95_high_sp"].notnull()]["pred_95_high_sp"].values
+    # both_ds.loc[both_ds["pred_95_low_sp"].notnull(), "pred_95_low"] = both_ds[both_ds["pred_95_low_sp"].notnull()]["pred_95_low_sp"].values
+    #
+    # both_ds = both_ds.drop(
+    #     columns=["prediction_sp", "pred_95_high_sp", "pred_95_low_sp"]
+    # )
+    #
+    # # Ground truth
+    #
+    df_vol = pd.read_csv("data/gx_volume.csv").loc[:, keep]
 
+    # both_ds = both_ds.merge(
     both_ds = submission_df.merge(
         df_vol,
         on=join_on,

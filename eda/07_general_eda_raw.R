@@ -3,6 +3,7 @@ library(ggplot2)
 library(dplyr)
 library(slider)
 library(ggridges)
+library(plotly)
 
 theme_set(theme_minimal())
 
@@ -43,11 +44,13 @@ gx_full %>%
   mutate(train = as.factor(train)) %>% 
   group_by(month_num, train) %>% 
   summarise(
-    mean_vol = mean(volume)
+    target_50 = median(volume),
+    target_avg = mean(volume),
+    target_25 = quantile(volume, .25),
+    target_75 = quantile(volume, .75),
   ) %>% 
-  ggplot(aes(x = month_num, y = mean_vol, color = train, group = train)) +
+  ggplot(aes(x = month_num, y = target_avg, color = train, group = train)) +
   geom_line()
-
 
 gx_full %>% 
   filter(month_num >= 0) %>% 
@@ -57,7 +60,9 @@ gx_full %>%
     mean_vol = mean(target)
   ) %>% 
   ggplot(aes(x = month_num, y = mean_vol, color = train, group = train)) +
-  geom_line()
+  geom_line() +
+  xlab("Month after generics") + 
+  ylab("Transformed ")
 
 
 # Time evolution ----------------------------------------------------------
@@ -73,7 +78,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg)) + 
+  ggplot(aes(x = month_num, y = target_50)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
   facet_wrap(~country)
@@ -92,7 +97,7 @@ gx_full %>%
 #   ungroup() %>% 
 #   filter(n > 5) %>%
 #   filter(brand %in% c("brand_1", "brand_2")) %>%
-#   ggplot(aes(x = month_num, y = target_avg)) + 
+#   ggplot(aes(x = month_num, y = target_50)) + 
 #   geom_line() + 
 #   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
 #   facet_wrap(~brand)
@@ -108,7 +113,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg)) + 
+  ggplot(aes(x = month_num, y = target_50)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
   facet_wrap(~therapeutic_area)
@@ -124,7 +129,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg)) + 
+  ggplot(aes(x = month_num, y = target_50)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
   facet_wrap(~presentation)
@@ -151,7 +156,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg)) + 
+  ggplot(aes(x = month_num, y = target_50)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
   facet_wrap(~num_generics)
@@ -168,7 +173,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg)) + 
+  ggplot(aes(x = month_num, y = target_50)) + 
   geom_line() + 
   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
   facet_wrap(~month_name)
@@ -199,6 +204,8 @@ target_0 %>%
 
 # Many lines together -----------------------------------------------------
 
+
+# View(gx_full)
 gx_full %>% 
   group_by(presentation, month_num) %>% 
   summarise(
@@ -209,11 +216,11 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg, color = presentation)) + 
+  ggplot(aes(x = month_num, y = target_50, color = presentation)) + 
   geom_line() 
 
 
-gx_full %>% 
+gx_full %>%
   group_by(country, month_num) %>% 
   summarise(
     target_50 = median(target),
@@ -223,7 +230,7 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg, color = country)) + 
+  ggplot(aes(x = month_num, y = target_50, color = country)) + 
   geom_line()
 
 
@@ -240,13 +247,13 @@ gx_full %>%
 #   ungroup() %>% 
 #   filter(n > 5) %>%
 #   filter(brand %in% c("brand_1", "brand_2")) %>%
-#   ggplot(aes(x = month_num, y = target_avg)) + 
+#   ggplot(aes(x = month_num, y = target_50)) + 
 #   geom_line() + 
 #   geom_ribbon(aes(ymin = target_25, ymax = target_75), alpha = 0.1) +
 #   facet_wrap(~brand)
 
 
-gx_full %>% 
+p <- gx_full %>% 
   group_by(therapeutic_area, month_num) %>% 
   summarise(
     target_50 = median(target),
@@ -256,9 +263,11 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg, color = therapeutic_area)) + 
+  ggplot(aes(x = month_num, y = target_50, color = therapeutic_area)) + 
   geom_line()
 
+p
+ggplotly(p)
 
 gx_full %>% 
   mutate(
@@ -279,5 +288,46 @@ gx_full %>%
     n = n()
   ) %>% 
   filter(n > 10) %>% 
-  ggplot(aes(x = month_num, y = target_avg, color = num_generics)) + 
+  ggplot(aes(x = month_num, y = target_50, color = num_generics)) + 
+  geom_line()
+
+
+gx_full %>% 
+  mutate(
+    channel = case_when(
+      D > 90 ~ "Channel D",
+      C > 90 ~ "Channel C",
+      B > 90 ~ "Channel B",
+      T ~ "Mixed"
+    )
+  ) %>% 
+  group_by(channel, month_num) %>% 
+  summarise(
+    target_50 = median(target),
+    target_avg = mean(target),
+    target_25 = quantile(target, .25),
+    target_75 = quantile(target, .75),
+    n = n()
+  ) %>% 
+  filter(n > 10) %>% 
+  ggplot(aes(x = month_num, y = target_50, color = channel)) + 
+  geom_line()
+
+
+gx_full %>% 
+  filter(month_num >= 0) %>% 
+  mutate(
+    n_channels = as.factor(pmin((A > 10) + (B > 10) + (C > 10) + (D > 10), 4))
+  ) %>% 
+  group_by(n_channels, month_num) %>% 
+  summarise(
+    target_50 = median(target),
+    target_avg = mean(target),
+    target_25 = quantile(target, .25),
+    target_75 = quantile(target, .75),
+    n = n()
+  ) %>% 
+  # ungroup() %>% 
+  # filter(n > 10) %>% 
+  ggplot(aes(x = month_num, y = target_50, color = n_channels)) + 
   geom_line()

@@ -21,12 +21,12 @@ volume_summaries <- gx_volume %>%
     last_vol_12 = last(volume[month_num <= -12]),
     # vol_12th = nth(volume, 12),
     # vol_6th = nth(volume, 12),
-    ratios_vol_12 = last_vol_12 / last_vol,
-    ratios_vol_6 = last_vol_6 / last_vol,
+    # ratios_vol_12 = last_vol_12 / last_vol,
+    # ratios_vol_6 = last_vol_6 / last_vol,
     # ratios_vol_12_ini = vol_12th / last_vol,
     # ratios_vol_6_ini = vol_6th / last_vol,
-    max_last_diff = (max_vol - last_vol) / max_vol,
-    min_last_diff = (min_vol - last_vol) / min_vol,
+    # max_last_diff = (max_vol - last_vol) / max_vol,
+    # min_last_diff = (min_vol - last_vol) / min_vol,
   ) %>% 
   select(-last_vol)
 

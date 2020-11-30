@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.linear_model import LinearRegression
-from category_encoders import TargetEncoder, CountEncoder, OneHotEncoder
+from category_encoders import TargetEncoder, CountEncoder
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
@@ -28,9 +28,9 @@ def compute_metrics(preds, lower, upper, y, offset, X, avg_volumes):
     prepped_X = prep_data_for_metric(X, avg_volumes)
 
     prepped_X["actuals"] = y
-    prepped_X["forecast"] = np.maximum((preds + 1) * offset, 0)
-    prepped_X["lower_bound"] = np.maximum((lower + 1) * offset, 0)
-    prepped_X["upper_bound"] = np.maximum((upper + 1) * offset, 0)
+    prepped_X["forecast"] = (preds + 1) * offset
+    prepped_X["lower_bound"] = (lower + 1) * offset
+    prepped_X["upper_bound"] = (upper + 1) * offset
 
     return np.mean(abs(prepped_X.groupby(id_cols).apply(apply_metrics)))
 
@@ -39,29 +39,17 @@ def preprocess(X):
     X = X.copy()
 
     offset = X[offset_name]
-    # Channel
-    # X["channel_"] = "Mixed"
-    # X.loc[X["B"] > 75, "channel_"] = "B"
-    # X.loc[X["C"] > 75, "channel_"] = "C"
-    # X.loc[X["D"] > 75, "channel_"] = "D"
 
     # More data for target encoding
-    # X["month_country"] = X["month_name"] + "_" + X["country"]
-    # X["month_presentation"] = X["month_name"] + "_" + X["presentation"]
-    # X["month_area"] = X["month_name"] + "_" + X["therapeutic_area"]
+    X["month_country"] = X["month_name"] + "_" + X["country"]
+    X["month_presentation"] = X["month_name"] + "_" + X["presentation"]
+    X["month_area"] = X["month_name"] + "_" + X["therapeutic_area"]
 
     # Month-num
-    # X["month_country_num"] = X["month_num"].map(str) + "_" + X["country"]
-    # X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
-    # X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
-    # X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
-
-    # X["presentation_therapeutic"] = X["therapeutic_area"] + "_" + X["presentation"]
-    # X["therapeutic_channel"] = X["therapeutic_area"] + "_" + X["channel_"]
-    # X["presentation_channel"] = X["presentation"] + "_" + X["channel_"]
-    # X["country_channel"] = X["country"] + "_" + X["channel_"]
-    # X["brand_channel"] = X["brand"] + "_" + X["channel_"]
-    # X["country_presentation"] = X["country"] + "_" + X["presentation"] + "_" + X["month_num"].map(str)
+    X["month_country_num"] = X["month_num"].map(str) + "_" + X["country"]
+    X["month_presentation_num"] = X["month_num"].map(str) + "_" + X["presentation"]
+    X["month_area_num"] = X["month_num"].map(str) + "_" + X["therapeutic_area"]
+    X["month_month_num"] = X["month_num"].map(str) + "_" + X["month_name"]
 
     #
     # categorical_cols_freq = [
@@ -82,9 +70,6 @@ def preprocess(X):
         if re.match(r".*mean|median", col):
             X[col] = (X[col] - offset) / offset
 
-        # if re.match(r".*Inf", col):
-        #     X.drop(columns=col)
-
     X["n_channels"] = (X["A"] > 10).astype(int) + \
                       (X["B"] > 10).astype(int) + \
                       (X["C"] > 10).astype(int)
@@ -102,22 +87,6 @@ if __name__ == "__main__":
     submission_df = pd.read_csv("data/submission_template.csv")
     train_tuples = pd.read_csv("data/train_split.csv")
     valid_tuples = pd.read_csv("data/valid_split.csv")
-
-    feat_01 = pd.read_csv("data/feat_01.csv")
-
-    full_df = full_df.merge(
-        feat_01,
-        on=["country", "brand", "month_num"],
-        how="left"
-    )
-
-    gx_month = pd.read_csv("data/gx_month.csv")
-
-    full_df = full_df.merge(
-        gx_month,
-        on=["country", "brand", "month_name"],
-        how="left"
-    )
 
     # full_df = full_df.merge(volume_features, on=["country", "brand"])
 
@@ -139,14 +108,7 @@ if __name__ == "__main__":
         "country", "brand", "therapeutic_area", "presentation", "month_name",
         "month_country", "month_presentation", "month_area",
         "month_country_num", "month_presentation_num", "month_area_num",
-        "month_month_num",
-        # "presentation_therapeutic",
-        # "therapeutic_channel",
-        # "presentation_channel",
-        # "country_channel",
-        # "brand_channel",
-        # "channel_",
-        # "country_presentation"
+        "month_month_num"
     ]
 
     # Prep data
@@ -167,8 +129,8 @@ if __name__ == "__main__":
     test_offset = test_df[offset_name]
 
     # Prep pipeline
-    te = OneHotEncoder(cols=categorical_cols)
-    te_residual = OneHotEncoder(cols=categorical_cols)
+    te = TargetEncoder(cols=categorical_cols)
+    te_residual = TargetEncoder(cols=categorical_cols)
     lgb = LGBMRegressor(
         n_jobs=-1, n_estimators=50, objective="regression_l1"
     )
@@ -235,7 +197,7 @@ if __name__ == "__main__":
     save_val = val_x.copy().loc[:, ["country", "brand", "month_num"]]
     save_val["y"] = val_y_raw
     save_val["lower"] = preds - best_lower_bound * preds_residual
-    save_val["upper"] = preds + best_upper_bound * preds_residual
+    save_val["upper"] = preds - best_upper_bound * preds_residual
     save_val["preds"] = preds
     save_val["lower_raw"] = (1 + save_val["lower"]) * val_offset
     save_val["upper_raw"] = (1 + save_val["upper"]) * val_offset
@@ -243,7 +205,6 @@ if __name__ == "__main__":
 
     if save:
         save_val.to_csv(f"data/blend/val_{file_name}.csv", index=False)
-        val_x.to_csv(f"data/blend/val_x.csv", index=False)
 
     # Retrain with full data -> In case of need
     if retrain_full_data:
